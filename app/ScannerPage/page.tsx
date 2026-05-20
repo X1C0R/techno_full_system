@@ -197,7 +197,7 @@ export default function Dashboard() {
     const { data: sale, error: saleError } = await supabase
       .from("sales")
       .insert({
-        employee_id: user.id,
+        employee_id: user.employee_id,
         total,
         tax,
         subtotal,
