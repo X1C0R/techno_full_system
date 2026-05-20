@@ -5,7 +5,7 @@ export function CreditTrackerSection() {
         <div className="bg-primary text-white rounded-[3rem] p-12 lg:p-20 relative overflow-hidden">
           <div className="relative z-10 flex flex-col lg:flex-row gap-12 items-center">
             <div className="lg:w-1/2 space-y-6">
-              <h2 className="font-[var(--font-heading)] font-bold text-5xl leading-tight">
+              <h2 className="font-(--font-heading) text-5xl leading-tight">
                 Say Goodbye to Credit Stress
               </h2>
               <p className="text-lg opacity-80 leading-relaxed">
@@ -15,13 +15,13 @@ export function CreditTrackerSection() {
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white/10 p-4 rounded-2xl">
-                  <p className="text-secondary font-[var(--font-heading)] font-semibold text-2xl">
+                  <p className="text-secondary font-(--font-heading) text-2xl">
                     98%
                   </p>
                   <p className="text-xs opacity-70">Payment recovery increase</p>
                 </div>
                 <div className="bg-white/10 p-4 rounded-2xl">
-                  <p className="text-secondary font-[var(--font-heading)] font-semibold text-2xl">
+                  <p className="text-secondary font-(--font-heading) text-2xl">
                     0
                   </p>
                   <p className="text-xs opacity-70">Lost notebooks</p>
@@ -37,7 +37,7 @@ export function CreditTrackerSection() {
                   >
                     add_circle
                   </span>
-                  <span className="font-[var(--font-heading)] font-semibold text-2xl text-primary">
+                  <span className="font-semibold text-2xl text-primary">
                     New Credit Record
                   </span>
                 </div>
@@ -90,7 +90,7 @@ export function CreditTrackerSection() {
             </div>
           </div>
           {/* Background Decoration */}
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-white/5 to-transparent pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-linear-to-l from-white/5 to-transparent pointer-events-none"></div>
         </div>
       </div>
     </section>

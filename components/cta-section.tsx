@@ -4,7 +4,7 @@ export function CTASection() {
   return (
     <section className="py-20 bg-surface" id="pricing">
       <div className="max-w-4xl mx-auto px-6 text-center space-y-10">
-        <h2 className="font-[var(--font-heading)] font-bold text-5xl text-primary leading-tight">
+        <h2 className="font-(--font-heading) text-5xl text-primary leading-tight">
           Start growing your business today!
         </h2>
         <p className="text-lg text-on-surface-variant leading-relaxed">

@@ -5,7 +5,7 @@ export function FeaturesSection() {
     <section className="py-20 bg-white" id="features">
       <div className="max-w-7xl mx-auto px-6">
         <div className="text-center mb-16 space-y-4">
-          <h2 className="font-[var(--font-heading)] font-bold text-primary text-4xl">
+          <h2 className="font-(--font-heading) text-primary text-4xl">
             Why choose Tory?
           </h2>
           <p className="text-on-surface-variant text-lg max-w-2xl mx-auto">
@@ -22,7 +22,7 @@ export function FeaturesSection() {
                     inventory_2
                   </span>
                 </div>
-                <h3 className="font-[var(--font-heading)] font-semibold text-2xl text-primary">
+                <h3 className="font-(--font-heading) text-2xl text-primary">
                   Inventory Management
                 </h3>
                 <p className="text-on-surface-variant max-w-md leading-relaxed">
@@ -61,7 +61,7 @@ export function FeaturesSection() {
                 menu_book
               </span>
             </div>
-            <h3 className="font-[var(--font-heading)] font-semibold text-2xl text-primary">
+            <h3 className="font-(--font-heading) text-2xl text-primary">
               Credit Tracker
             </h3>
             <p className="text-on-surface-variant mt-4 leading-relaxed">
@@ -97,7 +97,7 @@ export function FeaturesSection() {
                 bar_chart
               </span>
             </div>
-            <h3 className="font-[var(--font-heading)] font-semibold text-2xl text-primary">
+            <h3 className="font-(--font-heading) text-2xl text-primary">
               Sales Reports
             </h3>
             <p className="text-on-surface-variant mt-4 leading-relaxed">
@@ -109,7 +109,7 @@ export function FeaturesSection() {
           {/* Feature 4 - Mobile App */}
           <div className="md:col-span-12 lg:col-span-8 bg-primary-container text-white p-8 rounded-3xl flex flex-col md:flex-row items-center gap-8">
             <div className="space-y-4 md:w-1/2">
-              <h3 className="font-[var(--font-heading)] font-semibold text-2xl">
+              <h3 className="font-(--font-heading) text-2xl">
                 Mobile App for the Go-Getter
               </h3>
               <p className="opacity-90 leading-relaxed">
