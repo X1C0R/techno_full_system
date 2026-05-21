@@ -347,7 +347,7 @@ export default function ProfilePage() {
   return (
     <><div className="flex min-h-screen bg-[#f8f9ff] text-[#121c28]">
       {/* LEFT NAVIGATION */}
-      <div className="flex-col bg-green-900 lg:w-3xs md:w-52 sm:w-1">
+      <div className="flex-col bg-[#003527] lg:w-3xs md:w-52 sm:w-1">
         <div className="flex-col pl-4">
           <h1 className="text-6xl font-bold text-[#FFB900]">Tory</h1>
           <p className="text-white pl-2">POS SYSTEM</p>
@@ -514,7 +514,7 @@ export default function ProfilePage() {
 
           {/* RIGHT SIDE */}
           <div className="space-y-6">
-            <div className="bg-green-900 text-white p-6 rounded-xl">
+            <div className="bg-[#003527] text-white p-6 rounded-xl">
               <h4 className="text-lg font-bold mb-4">Shift Summary</h4>
               <p>Hours: {formatHours(hoursWorked)}</p>
               <p>Sales: ₱{todaySales.toLocaleString()}</p>
@@ -527,7 +527,16 @@ export default function ProfilePage() {
               </p>
             </div>
             <div className="flex flex-row-reverse ">
-              <div className="border-2 rounded-md p-1.5 bg-gray-700 font-medium text-lg text-white cursor-pointer" onClick={() => setShowModal(true)}>
+              <div
+                className="border-2 rounded-md p-1.5 bg-gray-700 font-medium text-lg text-white cursor-pointer"
+                onClick={() => {
+                  if (role === "admin") {
+                      handleLogout(); // bypass modal
+                  } else {
+                    setShowModal(true); // show modal for non-admin
+                  }
+                }}
+                  >
                 <LogoutIcon />
                 Logout
               </div>

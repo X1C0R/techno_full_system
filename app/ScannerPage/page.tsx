@@ -8,12 +8,14 @@ import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import Link from "next/link"
 import UtangModal from "@/components/utang_modal"
+import { Timestamp } from "next/dist/server/lib/cache-handlers/types"
 
 type Product = {
   name: string
   price: number
   barcode: string
   quantity: number
+  created_at: Timestamp
 }
 
 type CartItem = Product & {
@@ -218,6 +220,7 @@ export default function Dashboard() {
       price: item.price,
       qty: item.qty,
       barcode: item.barcode,
+      created_at: item.created_at
     }))
 
     const { error: itemsError } = await supabase
@@ -283,7 +286,7 @@ export default function Dashboard() {
       <div className="flex min-h-screen bg-gray-100">
 
         {/* LEFT NAV */}
-        <div className="flex-col bg-green-900 lg:w-3xs md:w-52 sm:w-1">
+        <div className="flex-col bg-[#003527] lg:w-3xs md:w-52 sm:w-1">
           <div className="flex-col pl-4">
             <h1 className="text-6xl font-bold text-[#FFB900]">Tory</h1>
             <p className="text-white pl-2">POS SYSTEM</p>
@@ -333,12 +336,14 @@ export default function Dashboard() {
                 src={account?.profileImage || "/default-avatar.png"}
                 className="w-10 h-10 rounded-full object-cover bg-gray-300"
               />
+              <div>
               <p className="font-semibold text-sm text-nowrap">
                 {account?.fullname || "Loading..."}
               </p>
               <p className="text-sm text-[#FFB900]">
                 {account?.role || ""}
               </p>
+              </div>
             </div>
           </div>
         </div>

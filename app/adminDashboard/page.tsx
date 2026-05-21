@@ -196,7 +196,7 @@ export default function AdminDashboard() {
     <div className="flex min-h-screen bg-[#f8f9ff] overflow-hidden">
 
       {/* SIDEBAR */}
-      <aside className="w-64 bg-green-900 text-white ">
+      <aside className="w-64 bg-[#003527] text-white ">
         <div className="flex-col pl-4">
         <h1 className="text-6xl font-bold text-[#FFB900]">Tory</h1>
         <p className="text-white pl-2">POS SYSTEM</p>
@@ -216,13 +216,13 @@ export default function AdminDashboard() {
             Inventory
           </div>
 
-          <Link href="/utang">
+          <Link href="/analyticsPage">
             <div 
             onMouseEnter={() => setHoverInventory(true)}
             onMouseLeave={() => setHoverInventory(false)}
             className="flex items-center gap-2 p-1 pt-2 pb-2 rounded cursor-pointer hover:bg-[#FFB900] hover:text-[#F54900] transition-all duration-300 ">
               <HistoryEduIcon />
-              Utang
+              Analylitics
             </div>
           </Link>
 
@@ -244,12 +244,14 @@ export default function AdminDashboard() {
                 src={account?.profileImage || "/default-avatar.png"}
                 className="w-10 h-10 rounded-full object-cover bg-gray-300"
               />
+              <div>
               <p className="font-semibold text-sm text-nowrap">
                 {account?.fullname || "Loading..."}
               </p>
               <p className="text-sm text-[#FFB900]">
                 {account?.role || ""}
               </p>
+              </div>
             </div>
           </div>
       </aside>
@@ -330,7 +332,7 @@ export default function AdminDashboard() {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="sales" fill="#003527" />
+                <Bar dataKey="sales" fill="#003527" radius={[6,6,0,0]} />
               </BarChart>
           </ResponsiveContainer>
           </div>
