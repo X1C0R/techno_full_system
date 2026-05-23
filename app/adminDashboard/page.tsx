@@ -177,10 +177,10 @@ export default function AdminDashboard() {
   }, [viewMode])
 
   return (
-    <div className="flex overflow-hidden h-screen bg-[#f8f9ff] ">
+    <div className="flex h-screen overflow-hidden bg-background text-on-background font-body-md">
 
       {/* MOBILE TOP BAR */}
-      <div className="md:hidden flex justify-between items-center bg-[#003527] text-white p-4">
+      <div className="md:hidden fixed top-0 left-0 right-0 flex justify-between items-center bg-[#003527] text-white p-4 z-50">
         <h1 className="text-xl font-bold text-[#FFB900]">Tory POS</h1>
         <button onClick={() => setOpen(!open)}>
           {open ? <CloseIcon /> : <MenuIcon />}
