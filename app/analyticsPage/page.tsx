@@ -21,6 +21,9 @@ import {
 
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu"
 import Link from "next/link"
+import MenuIcon from "@mui/icons-material/Menu"
+import CloseIcon from "@mui/icons-material/Close"
+import { useAuthGuard } from "../hooks/useAuthGuard";
 
 type Account = {
   fullname: string
@@ -35,7 +38,40 @@ type TopProduct = {
   revenue: number
 }
 
+/* ✅ FIXED NAV ITEM (OUTSIDE COMPONENT) */
+function NavItem({
+  icon,
+  label,
+  active = false,
+}: {
+  icon: any
+  label: string
+  active?: boolean
+}) {
+  return (
+    <div
+      className={`
+        flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer
+        transition-all duration-200
+        ${
+          active
+            ? "bg-[#FFB900] text-[#F54900]"
+            : "hover:bg-[#FFB900] hover:text-[#F54900]"
+        }
+      `}
+    >
+      {typeof icon === "object" && icon?.type ? (
+        icon
+      ) : (
+        <FontAwesomeIcon icon={icon} />
+      )}
+      {label}
+    </div>
+  )
+}
+
 export default function Analylitics() {
+  const { role, loading } = useAuthGuard(["admin"])
   const [barData, setBarData] = useState<any[]>([]);
   const [totalSales, setTotalSales] = useState(0);
   const [viewMode, setViewMode] = useState("day");
@@ -45,6 +81,7 @@ export default function Analylitics() {
   const [allSale, setAllSale] = useState(0);
   const [topProduct, setTopProduct] = useState<TopProduct[]>([])
 
+    const [open, setOpen] = useState(false)
 
   // ---------------- USER ----------------
   useEffect(() => {
@@ -128,7 +165,7 @@ export default function Analylitics() {
 
 
   // ---------------- SALE COUNTS ----------------
-  useEffect(() => {
+ useEffect(() => {
   const fetchSalesCount = async () => {
     const { data, error } = await supabase
       .from("sale_items")
@@ -218,69 +255,64 @@ export default function Analylitics() {
     <div className="flex min-h-screen bg-[#f8f9ff] text-[#121c28]">
 
       {/* SIDEBAR */}
-      <aside className="w-64 bg-[#003527] text-white ">
-        <div className="flex-col pl-4">
-        <h1 className="text-6xl font-bold text-[#FFB900]">Tory</h1>
-        <p className="text-white pl-2">POS SYSTEM</p>
+      <div className="md:hidden flex justify-between items-center bg-[#003527] text-white p-4">
+        <h1 className="text-xl font-bold text-[#FFB900]">Tory POS</h1>
+        <button onClick={() => setOpen(!open)}>
+          {open ? <CloseIcon /> : <MenuIcon />}
+        </button>
+      </div>
+
+      {/* SIDEBAR */}
+        <aside
+          className={`
+            fixed md:static top-0 left-0
+            h-screen w-64 bg-[#003527] text-white
+            flex flex-col overflow-hidden
+            transform transition-transform duration-300 z-50
+            ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+          `}
+        >
+        <div className="pl-4 pt-6">
+          <h1 className="text-5xl font-bold text-[#FFB900]">Tory</h1>
+          <p className="text-sm">POS SYSTEM</p>
         </div>
-        
 
-        <nav className="flex flex-col gap-2.5 mt-6 pl-4 pr-4">
+        <nav className="flex flex-col gap-2 mt-6 px-4">
           <Link href="/adminDashboard">
-            <div
-            onMouseEnter={() => setHoverInventory(true)}
-            onMouseLeave={() => setHoverInventory(false)}
-            className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-[#FFB900] hover:text-[#F54900] transition-all duration-300 ">
-              <FontAwesomeIcon icon={faCashRegister} />
-              Dashboard
-            </div>
-          </Link>  
-          <div 
-          onMouseEnter={() => setHoverInventory(true)}
-          onMouseLeave={() => setHoverInventory(false)}
-          className="flex items-center gap-2 p-2  rounded cursor-pointer hover:bg-[#FFB900] hover:text-[#F54900] transition-all duration-300 ">
-            <FontAwesomeIcon icon={faBoxesStacked} />
-            Inventory
-          </div>
-
+            <NavItem icon={faCashRegister} label="Dashboard" />
+          </Link>
+          <Link href="/inventoryPage">
+            <NavItem icon={faBoxesStacked} label="Inventory" />
+          </Link>
           <Link href="/analyticsPage">
-            <div 
-            onMouseEnter={() => setHoverInventory(true)}
-            onMouseLeave={() => setHoverInventory(false)}
-            className={`p-0.5 pl-2.5 pt-2.5 pb-2.5 flex-row flex gap-1 items-center rounded-md w-52 font-medium transition-all duration-300  ${hoverInventory ? "bg-transparent text-white" : "bg-[#FFB900] text-[#F54900]"}`}>
-              <HistoryEduIcon />
-              Analylitics
-            </div>
+            <NavItem icon={<HistoryEduIcon />} label="Analytics" active  />
           </Link>
-
+          <Link href="/employee">
+            <NavItem icon={<HistoryEduIcon />} label="Employee" />
+          </Link>
+          <Link href="/utang">
+            <NavItem icon={<HistoryEduIcon />} label="Utang" />
+          </Link>
           <Link href="/profile">
-            <div 
-            onMouseEnter={() => setHoverInventory(true)}
-            onMouseLeave={() => setHoverInventory(false)}
-            className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-[#FFB900] hover:text-[#F54900] transition-all duration-300 ">
-              <FontAwesomeIcon icon={faCircleUser} />
-              Users
-            </div>
+            <NavItem icon={faCircleUser} label="Users" />
           </Link>
-
-         
         </nav>
-         <div className="mt-96 text-white p-1.5">
-            <div className="flex flex-row gap-2.5 items-center border rounded-2xl p-1.5">
-              <img
-                src={account?.profileImage || "/default-avatar.png"}
-                className="w-10 h-10 rounded-full object-cover bg-gray-300"
-              />
-              <div>
-              <p className="font-semibold text-sm text-nowrap">
+
+        {/* PROFILE FIX */}
+        <div className="mt-auto p-4">
+          <div className="flex items-center gap-3 border rounded-xl p-2">
+            <img
+              src={account?.profileImage || "/default-avatar.png"}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <div>
+              <p className="font-semibold text-sm">
                 {account?.fullname || "Loading..."}
               </p>
-              <p className="text-sm text-[#FFB900]">
-                {account?.role || ""}
-              </p>
-              </div>
+              <p className="text-sm text-[#FFB900]">{account?.role}</p>
             </div>
           </div>
+        </div>
       </aside>
 
       {/* MAIN */}
@@ -347,19 +379,20 @@ export default function Analylitics() {
 
           {/* SUMMARY CARD */}
           <div className="bg-green-900 text-white p-6 rounded-xl">
-            <p>Total Sales Today</p>
+            <p>Total Sales</p>
             <h2 className="text-2xl font-bold">
               ₱{totalSales.toLocaleString()}
             </h2>
 
             <div className="mt-6 space-y-2">
               <div className="flex justify-between bg-white/20 p-2 rounded">
-                <span>All Product Sell</span>
+                <span>All Product Sell Today</span>
                 <span>{salesCount}</span>
               </div>
               <div className="flex justify-between bg-white/20 p-2 rounded">
-                <span>ALL TOTAL SALE</span>
+                <span>Total SALE Today</span>
                 <span>₱ {allSale}</span>
+                
               </div>
             </div>
           </div>

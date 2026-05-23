@@ -47,9 +47,6 @@ export function Navbar() {
           <Link href="/login"><button className="hidden sm:block text-emerald-900 dark:text-emerald-50 font-semibold text-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/40 px-4 py-2 rounded-md transition-all active:scale-[0.98]">
             Log In
           </button></Link>
-          <Link href="/register"><button className="bg-primary-container text-on-primary-container font-semibold text-sm px-5 py-2.5 rounded-xl shadow-md active:scale-[0.98] transition-transform duration-150">
-            Register Store
-          </button></Link>
         </div>
       </div>
     </nav>

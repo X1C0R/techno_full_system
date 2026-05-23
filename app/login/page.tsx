@@ -14,83 +14,85 @@ export default function LoginPage() {
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+  e.preventDefault()
 
-    if (!email || !password) {
-      alert("Please fill all fields")
-      return
-    }
+  if (!email || !password) {
+    alert("Please fill all fields")
+    return
+  }
 
-    setLoading(true)
+  setLoading(true)
 
-    const { data, error } = await supabase
-      .from("accounts")
-      .select("*")
-      .eq("email", email)
-      .eq("password", password)
-      .single()
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("*")
+    .eq("email", email)
+    .eq("password", password)
+    .single()
 
-    setLoading(false)
+  setLoading(false)
 
-    if (error || !data) {
-      alert("Invalid login")
-      return
-    }
+  if (error || !data) {
+    alert("Invalid login")
+    return
+  }
 
-    // ✅ SAVE USER
-    localStorage.setItem("user", JSON.stringify(data))
+  // =========================
+  // 💾 SAVE USER
+  // =========================
+  localStorage.setItem("user", JSON.stringify(data))
 
-    const employeeId = data.employee_id
+  // =========================
+  // 🟢 SET USER ACTIVE (IMPORTANT ADDITION)
+  // =========================
+  await supabase
+    .from("accounts")
+    .update({ status: "active" })
+    .eq("id", data.id)
 
-    // =========================
-    // 🔍 CHECK PAUSED SHIFT FIRST
-    // =========================
-    const { data: pausedShift } = await supabase
+  const employeeId = data.employee_id
+
+  // =========================
+  // 🔍 CHECK PAUSED SHIFT
+  // =========================
+  const { data: pausedShift } = await supabase
+    .from("shifts")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .is("clock_out", null)
+    .single()
+
+  if (pausedShift?.is_paused) {
+    setShowResumeModal(true)
+    return
+  }
+
+  // =========================
+  // 🚀 AUTO CLOCK-IN
+  // =========================
+  if (data.role === "cashier" || data.role === "manager") {
+    const { data: existingShift } = await supabase
       .from("shifts")
       .select("*")
       .eq("employee_id", employeeId)
       .is("clock_out", null)
       .single()
 
-    // 🚨 IF PAUSED → SHOW MODAL AND STOP
-    if (pausedShift?.is_paused) {
-      setShowResumeModal(true)
-      return
+    if (!existingShift) {
+      await supabase.from("shifts").insert([
+        {
+          employee_id: employeeId,
+          clock_in: new Date().toISOString(),
+          clock_out: null,
+          is_paused: false,
+        },
+      ])
     }
+  }
 
-    // =========================
-    // 🚀 AUTO CLOCK-IN
-    // =========================
-    if (data.role === "cashier" || data.role === "manager") {
-
-      const { data: existingShift } = await supabase
-        .from("shifts")
-        .select("*")
-        .eq("employee_id", employeeId)
-        .is("clock_out", null)
-        .single()
-
-      if (!existingShift) {
-        const { error: clockInError } = await supabase
-          .from("shifts")
-          .insert([
-            {
-              employee_id: employeeId,
-              clock_in: new Date().toISOString(),
-              clock_out: null,
-              is_paused: false,
-            },
-          ])
-
-        if (clockInError) {
-          console.error("CLOCK IN ERROR:", clockInError)
-        }
-      }
-    }
-
-    // =========================
-    // 🚀 REDIRECT
-    // =========================
+  // =========================
+  // 🚀 REDIRECT
+  // =========================
     if (data.role === "admin") {
       router.push("/adminDashboard")
     } else if (data.role === "manager") {
@@ -222,7 +224,7 @@ export default function LoginPage() {
         </form>
 
         {/* FOOTER */}
-        <div className="text-center mt-8 text-sm text-gray-500">
+        {/* <div className="text-center mt-8 text-sm text-gray-500">
           Don't have an account?{" "}
           <span
             onClick={() => router.push("/register")}
@@ -230,7 +232,7 @@ export default function LoginPage() {
           >
             Register Store
           </span>
-        </div>
+        </div> */}
       </div>
 
       {/* ✅ MODAL */}

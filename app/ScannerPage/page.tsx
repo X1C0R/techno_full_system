@@ -9,6 +9,9 @@ import PaymentsIcon from '@mui/icons-material/Payments';
 import Link from "next/link"
 import UtangModal from "@/components/utang_modal"
 import { Timestamp } from "next/dist/server/lib/cache-handlers/types"
+import MenuIcon from "@mui/icons-material/Menu"
+import CloseIcon from "@mui/icons-material/Close"
+import { useAuthGuard } from "../hooks/useAuthGuard"
 
 type Product = {
   name: string
@@ -16,6 +19,7 @@ type Product = {
   barcode: string
   quantity: number
   created_at: Timestamp
+  category: string
 }
 
 type CartItem = Product & {
@@ -28,7 +32,39 @@ type Account = {
   profileImage: string
 }
 
+function NavItem({
+  icon,
+  label,
+  active = false,
+}: {
+  icon: any
+  label: string
+  active?: boolean
+}) {
+  return (
+    <div
+      className={`
+        flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer
+        transition-all duration-200
+        ${
+          active
+            ? "bg-[#FFB900] text-[#F54900]"
+            : "hover:bg-[#FFB900] hover:text-[#F54900]"
+        }
+      `}
+    >
+      {typeof icon === "object" && icon?.type ? (
+        icon
+      ) : (
+        <FontAwesomeIcon icon={icon} />
+      )}
+      {label}
+    </div>
+  )
+}
+
 export default function Dashboard() {
+  const { role, loading } = useAuthGuard(["cashier", "manager", "admin"])
   const [cart, setCart] = useState<CartItem[]>([])
   const [hoverInventory, setHoverInventory] = useState(false)
   const [account, setAccount] = useState<Account | null>(null)
@@ -45,6 +81,7 @@ export default function Dashboard() {
   const [cartSearch, setCartSearch] = useState("")
   const [searchResults, setSearchResults] = useState<Product[]>([])
 
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
   const fetchProducts = async () => {
@@ -59,6 +96,18 @@ export default function Dashboard() {
 
   fetchProducts()
 }, [])
+
+//LOAD CART FROM LOCALSTORAGE (from inventory Buy button)
+    useEffect(() => {
+      const saved = localStorage.getItem("cart")
+      if (!saved) return
+
+      const parsed = JSON.parse(saved)
+      if (parsed.length > 0) {
+        setCart(parsed)
+        localStorage.removeItem("cart") // clear after loading
+      }
+    }, [])
 
   // LIVE SCANS
   useEffect(() => {
@@ -144,7 +193,7 @@ export default function Dashboard() {
 
     setAccount({
       fullname: data.full_name,
-      role: data.role, // ✅ always fresh
+      role: data.role?.trim().toLowerCase(), // ✅ always fresh
       profileImage: data.profile_image
         ? data.profile_image + "?t=" + Date.now()
         : "/default-avatar.png",
@@ -220,7 +269,8 @@ export default function Dashboard() {
       price: item.price,
       qty: item.qty,
       barcode: item.barcode,
-      created_at: item.created_at
+      category: item.category,
+      created_at: new Date().toISOString()
     }))
 
     const { error: itemsError } = await supabase
@@ -270,7 +320,7 @@ export default function Dashboard() {
     setCustomerName("")
     setCustomerPhone("")
     setShowUtangModal(false)
-
+    localStorage.removeItem("cart")
     alert("Sale completed successfully!")
 
   } catch (err: any) {
@@ -286,68 +336,77 @@ export default function Dashboard() {
       <div className="flex min-h-screen bg-gray-100">
 
         {/* LEFT NAV */}
-        <div className="flex-col bg-[#003527] lg:w-3xs md:w-52 sm:w-1">
-          <div className="flex-col pl-4">
-            <h1 className="text-6xl font-bold text-[#FFB900]">Tory</h1>
-            <p className="text-white pl-2">POS SYSTEM</p>
-          </div>
+        <div className="md:hidden flex justify-between items-center bg-[#003527] text-white p-4">
+        <h1 className="text-xl font-bold text-[#FFB900]">Tory POS</h1>
+        <button onClick={() => setOpen(!open)}>
+          {open ? <CloseIcon /> : <MenuIcon />}
+        </button>
+      </div>
 
-          <div className="flex-col mt-6 ml-5 cursor-pointer">
-            <div className={`p-0.5 pl-2.5 pt-2.5 pb-2.5 flex-row flex gap-1 items-center rounded-md w-52 font-medium ${hoverInventory ? "bg-transparent text-white" : "bg-[#FFB900] text-[#F54900]"}`}>
-              <FontAwesomeIcon icon={faCashRegister} />
-              <h1>Cashier</h1>
-            </div>
+      {/* SIDEBAR */}
+        <aside
+          className={`
+            fixed md:static top-0 left-0
+            h-screen w-64 bg-[#003527] text-white
+            flex flex-col overflow-hidden
+            transform transition-transform duration-300 z-50
+            ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+          `}
+        >
+        <div className="pl-4 pt-6">
+          <h1 className="text-5xl font-bold text-[#FFB900]">Tory</h1>
+          <p className="text-sm">POS SYSTEM</p>
+        </div>
 
-            <Link href="/inventory">
-              <div
-                onMouseEnter={() => setHoverInventory(true)}
-                onMouseLeave={() => setHoverInventory(false)}
-                className="mt-2.5 p-0.5 pl-2.5 pt-2.5 pb-2.5 flex-row flex gap-1 items-center rounded-md w-52 font-medium text-white hover:bg-[#FFB900] hover:text-[#F54900]"
-              >
-                <FontAwesomeIcon icon={faBoxesStacked} />
-                <h1>Inventory</h1>
-              </div>
-            </Link>
-            <Link href="/utang">
-              <div
-                onMouseEnter={() => setHoverInventory(true)}
-                onMouseLeave={() => setHoverInventory(false)}
-                className="mt-2.5 p-0.5 pl-2.5 pt-2.5 pb-2.5 flex-row flex gap-1 items-center rounded-md w-52 font-medium text-white hover:bg-[#FFB900] hover:text-[#F54900]"
-              >
-                <HistoryEduIcon />
-                <h1>Utang</h1>
-              </div>
-            </Link>
+        <nav className="flex flex-col gap-2 mt-6 px-4">
+          {account?.role === "admin" && (
+          <Link href="/adminDashboard">
+            <NavItem icon={faCashRegister} label="Dashboard" />
+          </Link>
+          )}
+          <Link href="/ScannerPage">
+            <NavItem icon={faCashRegister} label="Cashier" active/>
+          </Link>
+          
+          <Link href="/inventoryPage">
+            <NavItem icon={faBoxesStacked} label="Inventory" />
+          </Link>
 
-            <Link href="/profile">
-              <div
-               onMouseEnter={() => setHoverInventory(true)}
-               onMouseLeave={() => setHoverInventory(false)}
-               className="mt-2.5 p-0.5 pl-2.5 pt-2.5 pb-2.5 flex-row flex gap-1 items-center rounded-md w-52 font-medium text-white hover:bg-[#FFB900] hover:text-[#F54900]">
-                <FontAwesomeIcon icon={faCircleUser} />
-                <h1>Profile</h1>
-              </div>
-            </Link>
-          </div>
+          {account?.role === "admin" && (
+            <>
+          <Link href="/analyticsPage">
+            <NavItem icon={<HistoryEduIcon />} label="Analytics"/>
+          </Link>
+          <Link href="/employee">
+            <NavItem icon={<HistoryEduIcon />} label="Employee" />
+          </Link>
+            </>
+          )}
+          
+          <Link href="/utang">
+            <NavItem icon={<HistoryEduIcon />} label="Utang"  />
+          </Link>
+          <Link href="/profile">
+            <NavItem icon={faCircleUser} label="Users" />
+          </Link>
+        </nav>
 
-          <div className="mt-96 text-white p-1.5">
-            <div className="flex flex-row gap-2.5 items-center border rounded-2xl p-1.5">
-              <img
-                src={account?.profileImage || "/default-avatar.png"}
-                className="w-10 h-10 rounded-full object-cover bg-gray-300"
-              />
-              <div>
-              <p className="font-semibold text-sm text-nowrap">
+        {/* PROFILE FIX */}
+        <div className="mt-auto p-4">
+          <div className="flex items-center gap-3 border rounded-xl p-2">
+            <img
+              src={account?.profileImage || "/default-avatar.png"}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <div>
+              <p className="font-semibold text-sm">
                 {account?.fullname || "Loading..."}
               </p>
-              <p className="text-sm text-[#FFB900]">
-                {account?.role || ""}
-              </p>
-              </div>
+              <p className="text-sm text-[#FFB900]">{account?.role}</p>
             </div>
           </div>
         </div>
-
+      </aside>
         {/* 🔍 PRODUCT SEARCH BAR (ADDED) */}
         <div className="flex-1">
           <div className="flex items-center gap-2.5 px-2.5 mt-2 border-b pb-1.5">

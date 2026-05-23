@@ -14,16 +14,51 @@ import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { User } from "lucide-react";
+import MenuIcon from "@mui/icons-material/Menu"
+import CloseIcon from "@mui/icons-material/Close"
+import { useAuthGuard } from "../hooks/useAuthGuard";
+
+function NavItem({
+  icon,
+  label,
+  active = false,
+}: {
+  icon: any
+  label: string
+  active?: boolean
+}) {
+  return (
+    <div
+      className={`
+        flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer
+        transition-all duration-200
+        ${
+          active
+            ? "bg-[#FFB900] text-[#F54900]"
+            : "hover:bg-[#FFB900] hover:text-[#F54900]"
+        }
+      `}
+    >
+      {typeof icon === "object" && icon?.type ? (
+        icon
+      ) : (
+        <FontAwesomeIcon icon={icon} />
+      )}
+      {label}
+    </div>
+  )
+}
 
 export default function ProfilePage() {
+  const { role, loading } = useAuthGuard(["cashier", "manager", "admin"])
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [Loading, setLoading] = useState(true);
 
   const [phone, setPhone] = useState("");
   const [fullname, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [profileImage, setProfileImage] = useState("");
-  const [role, setRole] = useState("")
+  const [Role, setRole] = useState("")
   const [hoverInventory, setHoverInventory] = useState(false);
   const [employeeId, setEmployeeId] = useState("")
 
@@ -36,6 +71,7 @@ export default function ProfilePage() {
 
   const [showModal, setShowModal] = useState(false);
   const [pausing, setPausing] = useState(false);
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
   const loadUser = async () => {
@@ -271,19 +307,15 @@ export default function ProfilePage() {
 
     const user = JSON.parse(storedUser);
 
-    const { data: shift, error } = await supabase
+    const { data: shift } = await supabase
       .from("shifts")
       .select("*")
       .eq("employee_id", user.employee_id)
       .is("clock_out", null)
-      .maybeSingle(); // ✅ safer than single()
-
-    if (error) {
-      console.error("FETCH SHIFT ERROR:", error);
-    }
+      .maybeSingle();
 
     if (shift) {
-      const { error: updateError } = await supabase
+      await supabase
         .from("shifts")
         .update({
           clock_out: new Date().toISOString(),
@@ -291,19 +323,24 @@ export default function ProfilePage() {
           paused_at: null,
         })
         .eq("id", shift.id);
+    }
 
-      if (updateError) {
-        console.error("CLOCK OUT ERROR:", updateError);
-          }
-        }
+     const { data, error } = await supabase
+          .from("accounts")
+          .update({ status: "offline" })
+          .eq("employee_id", user.employee_id)
+          .select();
 
-        localStorage.removeItem("user");
-        router.push("/login");
+        console.log("STATUS UPDATE RESULT:", data, error);
 
-      } catch (err) {
-        console.error("LOGOUT ERROR:", err);
-      }
-    };
+      // 3. clear session
+      localStorage.removeItem("user");
+      router.push("/login");
+
+    } catch (err) {
+      console.error("LOGOUT ERROR:", err);
+    }
+  };
 
     const formatHours = (decimalHours: number) => {
     const totalSeconds = Math.floor(decimalHours * 3600);
@@ -316,89 +353,118 @@ export default function ProfilePage() {
   };   
     
       const handlePause = async () => {
-          const storedUser = localStorage.getItem("user");
-          if (!storedUser) return;
+        const storedUser = localStorage.getItem("user");
+        if (!storedUser) return;
 
-          const user = JSON.parse(storedUser);
+        const user = JSON.parse(storedUser);
 
-          // get active shift
-          const { data: shift } = await supabase
-            .from("shifts")
-            .select("*")
-            .eq("employee_id", user.employee_id)
-            .is("clock_out", null)
-            .single();
+        // get active shift (safe version)
+        const { data: shift, error } = await supabase
+          .from("shifts")
+          .select("*")
+          .eq("employee_id", user.employee_id)
+          .is("clock_out", null)
+          .maybeSingle();
 
-          if (!shift) return;
+        if (error) {
+          console.error("SHIFT FETCH ERROR:", error);
+          return;
+        }
 
-          // ✅ pause shift
-          await supabase
-            .from("shifts")
-            .update({
-              is_paused: true,
-              paused_at: new Date().toISOString(),
-            })
-            .eq("id", shift.id);
+        if (!shift) return;
 
-          // ✅ logout AFTER pause
-          localStorage.removeItem("user");
-          router.push("/login");
-        };
+        const now = new Date().toISOString();
+
+        // pause shift
+        const { error: updateError } = await supabase
+          .from("shifts")
+          .update({
+            is_paused: true,
+            paused_at: now,
+          })
+          .eq("id", shift.id);
+
+        if (updateError) {
+          console.error("PAUSE ERROR:", updateError);
+          return;
+        }
+
+        // OPTIONAL (recommended): update user status
+        await supabase
+          .from("accounts")
+          .update({
+            status: "break",
+          })
+          .eq("employee_id", user.employee_id);
+
+        // logout AFTER pause
+        localStorage.removeItem("user");
+        router.push("/login");
+      };
   return (
     <><div className="flex min-h-screen bg-[#f8f9ff] text-[#121c28]">
       {/* LEFT NAVIGATION */}
-      <div className="flex-col bg-[#003527] lg:w-3xs md:w-52 sm:w-1">
-        <div className="flex-col pl-4">
-          <h1 className="text-6xl font-bold text-[#FFB900]">Tory</h1>
-          <p className="text-white pl-2">POS SYSTEM</p>
-        </div>
-
-        <div className="flex-col mt-6 ml-5">
-          <Link href={role === "admin" ? "/adminDashboard" : "/ScannerPage"}>
-            <div className="flex-col mt-6 cursor-pointer">
-              <div
-                className="p-0.5 pl-2.5 pt-2.5 pb-2.5 flex flex-row gap-1 items-center rounded-md w-52 font-medium text-white hover:bg-[#FFB900] hover:text-[#F54900] transition-all duration-300  "
-                onMouseEnter={() => setHoverInventory(true)}
-                onMouseLeave={() => setHoverInventory(false)}
-              >
-                <FontAwesomeIcon icon={faCashRegister} />
-                <h1>{role === "admin" ? "Dashboard" : "Cashier"}</h1>
-              </div>
-            </div>
-          </Link>
-
-          <div
-            className="mt-2.5 p-2 flex items-center gap-2 rounded-md w-52 font-medium text-white hover:bg-[#FFB900] hover:text-[#F54900] transition-all duration-300 "
-            onMouseEnter={() => setHoverInventory(true)}
-            onMouseLeave={() => setHoverInventory(false)}
-          >
-            <FontAwesomeIcon icon={faBoxesStacked} />
-            Inventory
-          </div>
-
-          <Link href="/utang">
-            <div
-              onMouseEnter={() => setHoverInventory(true)}
-              onMouseLeave={() => setHoverInventory(false)}
-              className="mt-2.5 p-0.5 pl-2.5 pt-2.5 pb-2.5 flex-row flex gap-1 items-center rounded-md w-52 font-medium text-white hover:bg-[#FFB900] hover:text-[#F54900] transition-all duration-300 "
-            >
-              <HistoryEduIcon />
-              <h1>Utang</h1>
-            </div>
-          </Link>
-
-          <Link href="/profile">
-            <div
-              className={`mt-2.5 p-2 flex items-center gap-2 rounded-md w-52 font-medium transition-all duration-300 ${hoverInventory
-                  ? "bg-transparent text-white"
-                  : "bg-[#FFB900] text-[#F54900]"}`}
-            >
-              <FontAwesomeIcon icon={faCircleUser} />
-              Profile
-            </div>
-          </Link>
-        </div>
+      <div className="md:hidden flex justify-between items-center bg-[#003527] text-white p-4">
+        <h1 className="text-xl font-bold text-[#FFB900]">Tory POS</h1>
+        <button onClick={() => setOpen(!open)}>
+          {open ? <CloseIcon /> : <MenuIcon />}
+        </button>
       </div>
+
+      {/* SIDEBAR */}
+        <aside
+          className={`
+            fixed md:static top-0 left-0
+            h-screen w-64 bg-[#003527] text-white
+            flex flex-col overflow-hidden
+            transform transition-transform duration-300 z-50
+            ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+          `}
+        >
+        <div className="pl-4 pt-6">
+          <h1 className="text-5xl font-bold text-[#FFB900]">Tory</h1>
+          <p className="text-sm">POS SYSTEM</p>
+        </div>
+
+        <nav className="flex flex-col gap-2 mt-6 px-4">
+      {Role == "admin" && (
+        <>
+          <Link href="/adminDashboard">
+            <NavItem icon={faCashRegister} label="Dashboard" />
+          </Link>
+        </>
+      )}
+      {Role == "cashier" && (
+        <>
+        <Link href="/ScannerPage">
+            <NavItem icon={faCashRegister} label="Cashier"/>
+        </Link>
+        </>
+      )}
+      <NavItem icon={faBoxesStacked} label="Inventory" />
+
+      {Role === "admin" && (
+        <>
+          <Link href="/analyticsPage">
+            <NavItem icon={<HistoryEduIcon />} label="Analytics" />
+          </Link>
+
+          <Link href="/employee">
+            <NavItem icon={<HistoryEduIcon />} label="Employee" />
+          </Link>
+        </>
+      )}
+
+      <Link href="/utang">
+        <NavItem icon={<HistoryEduIcon />} label="Utang" />
+      </Link>
+
+      <Link href="/profile">
+        <NavItem icon={faCircleUser} label="Users" active />
+      </Link>
+
+      </nav>
+      </aside>
 
       {/* MAIN */}
       <main className="flex-1 p-8">
@@ -440,7 +506,7 @@ export default function ProfilePage() {
             <h3 className="text-2xl font-bold">
               {fullname || "No Name Yet"}
             </h3>
-            <p className="text-green-700 font-semibold">{role}</p>
+            <p className="text-green-700 font-semibold">{Role}</p>
             <p className="text-sm text-gray-500">{email}</p>
           </div>
 
@@ -530,7 +596,7 @@ export default function ProfilePage() {
               <div
                 className="border-2 rounded-md p-1.5 bg-gray-700 font-medium text-lg text-white cursor-pointer"
                 onClick={() => {
-                  if (role === "admin") {
+                  if (Role === "admin") {
                       handleLogout(); // bypass modal
                   } else {
                     setShowModal(true); // show modal for non-admin
