@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic"
 export function CreditTrackerSection() {
   return (
     <section className="py-20 bg-white" id="pautang">

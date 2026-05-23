@@ -18,6 +18,7 @@ type Props = {
   customerPhone: string
   setCustomerPhone: (value: string) => void
 }
+export const dynamic = "force-dynamic"
 export default function UtangModal({
   isOpen,
   onClose,

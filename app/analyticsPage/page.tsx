@@ -69,7 +69,7 @@ function NavItem({
     </div>
   )
 }
-
+export const dynamic = "force-dynamic"
 export default function Analylitics() {
   const { role, loading } = useAuthGuard(["admin"])
   const [barData, setBarData] = useState<any[]>([]);

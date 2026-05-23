@@ -1,5 +1,5 @@
 import Image from "next/image";
-
+export const dynamic = "force-dynamic"
 export function FeaturesSection() {
   return (
     <section className="py-20 bg-white" id="features">

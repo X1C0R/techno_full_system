@@ -62,7 +62,7 @@ function NavItem({
     </div>
   )
 }
-
+export const dynamic = "force-dynamic"
 export default function UtangPage() {
 
   const [account, setAccount] = useState<Account | null>(null)

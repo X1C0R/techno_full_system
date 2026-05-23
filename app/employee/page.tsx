@@ -62,7 +62,7 @@ function NavItem({
     </div>
   )
 }
-
+export const dynamic = "force-dynamic"
 export default function EmployeesPage() {
   const { role, loading } = useAuthGuard(["admin"])
   const [employees, setEmployees] = useState<Account[]>([])

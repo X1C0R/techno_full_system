@@ -48,7 +48,7 @@ function NavItem({
     </div>
   )
 }
-
+export const dynamic = "force-dynamic"
 export default function ProfilePage() {
   const { role, loading } = useAuthGuard(["cashier", "manager", "admin"])
   const [saving, setSaving] = useState(false);

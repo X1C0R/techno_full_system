@@ -62,7 +62,7 @@ function NavItem({
     </div>
   )
 }
-
+export const dynamic = "force-dynamic"
 export default function Dashboard() {
   const { role, loading } = useAuthGuard(["cashier", "manager", "admin"])
   const [cart, setCart] = useState<CartItem[]>([])

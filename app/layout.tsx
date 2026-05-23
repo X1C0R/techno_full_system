@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: "#064e3b",
 };
-
+export const dynamic = "force-dynamic"
 export default function RootLayout({
   children,
 }: Readonly<{

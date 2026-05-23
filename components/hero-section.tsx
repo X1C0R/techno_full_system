@@ -1,5 +1,5 @@
 import Image from "next/image";
-
+export const dynamic = "force-dynamic"
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden bg-surface py-20 lg:py-32">

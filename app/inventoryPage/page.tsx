@@ -53,7 +53,7 @@ function NavItem({
     </div>
   )
 }
-
+export const dynamic = "force-dynamic"
 export default function InventoryPage() {
     const { role, loading } = useAuthGuard(["cashier", "manager", "admin"])
   const [open, setOpen] = useState(false)

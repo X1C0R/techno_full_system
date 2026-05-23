@@ -20,7 +20,7 @@ type Props = {
   date: string
   onPay: (password: string) => void
 }
-
+export const dynamic = "force-dynamic"
 export default function PautangSettlementModal({
   isOpen,
   onClose,

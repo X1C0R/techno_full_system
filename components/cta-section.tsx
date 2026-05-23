@@ -1,5 +1,5 @@
 import Image from "next/image";
-
+export const dynamic = "force-dynamic"
 export function CTASection() {
   return (
     <section className="py-20 bg-surface" id="pricing">

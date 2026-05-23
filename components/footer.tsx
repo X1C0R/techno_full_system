@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+export const dynamic = "force-dynamic"
 export function Footer() {
   return (
     <footer className="bg-emerald-900 dark:bg-black text-white dark:text-emerald-100 border-t border-emerald-800 dark:border-emerald-900 w-full mt-auto">

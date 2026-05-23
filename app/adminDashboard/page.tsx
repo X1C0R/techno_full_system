@@ -74,7 +74,7 @@ function NavItem({
     </div>
   )
 }
-
+export const dynamic = "force-dynamic"
 export default function AdminDashboard() {
   const { role, loading } = useAuthGuard(["admin"])
   const [open, setOpen] = useState(false)
