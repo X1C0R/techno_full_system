@@ -23,9 +23,6 @@ export function HeroSection() {
             your shop with our digital ledger and point-of-sale system.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
-            <button className="bg-primary-container text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all active:scale-95">
-              Register Now
-            </button>
             <button className="border-2 border-primary-container text-primary-container px-8 py-4 rounded-xl font-semibold text-lg hover:bg-primary-container/5 transition-all">
               Try the Demo
             </button>

@@ -177,7 +177,7 @@ export default function AdminDashboard() {
   }, [viewMode])
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-on-background font-body-md">
+    <div className="flex h-screen bg-background text-on-background font-body-md">
 
       {/* MOBILE TOP BAR */}
       <div className="md:hidden fixed top-0 left-0 right-0 flex justify-between items-center bg-[#003527] text-white p-4 z-50">
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* MAIN */}
-      <main className="flex-1 p-4 overflow-hidden">
+      <main className="flex-1 p-4 overflow-y-auto mt-14 md:mt-0">
         <div className="grid md:grid-cols-2 gap-4 overflow-hidden">
           {/* PIE */}
           <div className="bg-white p-4 rounded-xl shadow">

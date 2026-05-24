@@ -333,7 +333,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="flex min-h-screen bg-gray-100">
+      <div className="flex h-screen overflow-hidden text-on-background font-body-md bg-gray-100">
 
         {/* LEFT NAV */}
         <div className="md:hidden flex justify-between items-center bg-[#003527] text-white p-4">

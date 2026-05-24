@@ -105,32 +105,6 @@ export function FeaturesSection() {
               about your business performance.
             </p>
           </div>
-
-          {/* Feature 4 - Mobile App */}
-          <div className="md:col-span-12 lg:col-span-8 bg-primary-container text-white p-8 rounded-3xl flex flex-col md:flex-row items-center gap-8">
-            <div className="space-y-4 md:w-1/2">
-              <h3 className="font-(--font-heading) text-2xl">
-                Mobile App for the Go-Getter
-              </h3>
-              <p className="opacity-90 leading-relaxed">
-                Works even offline! No signal in your shop? No problem. Sync
-                your data once you&apos;re back online.
-              </p>
-              <button className="bg-white text-primary-container font-semibold text-sm px-6 py-2 rounded-lg mt-4 flex items-center gap-2">
-                <span className="material-symbols-outlined">download</span>
-                Download App
-              </button>
-            </div>
-            <div className="md:w-1/2 flex justify-center">
-              <Image
-                alt="Mobile App Interface"
-                className="w-48 h-auto rounded-3xl shadow-xl transform rotate-6"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuhgH7Znm-mJShw7t9icrdEpHvm0I3nV7nMsRKaQw68iD6-t6_fkVUSi9ijVrgVxAolA8agNbQIkRAgfCh3NbujwwY9ruVgV8aIWeraK8_TIcYTM0X5e7P0nSe9LhpZ3F3gjTs4Jj6bLu89RyCFxAYFJRhoh_77hsNJXDOtxTOY7VpoflYeHJYhfnvGqV8_z_d8N9E8hBqJjNFzzoExIwdUC-ogPcW3WDIZb641MhWXK60BlNQfr9BYhcq5MPOFWvkizHGg0gQM1Y"
-                width={192}
-                height={400}
-              />
-            </div>
-          </div>
         </div>
       </div>
     </section>
