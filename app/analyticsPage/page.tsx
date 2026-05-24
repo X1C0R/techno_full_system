@@ -88,7 +88,7 @@ export default function Analytics() {
       setAccount({
         fullname: data.full_name,
         role: data.role,
-        profileImage: data.profile_image || "/default-avatar.png",
+        profileImage: data.profile_image,
       })
     }
     fetchUser()
@@ -236,7 +236,7 @@ export default function Analytics() {
         <div className="mt-auto p-4">
           <div className="flex items-center gap-3 border rounded-xl p-2">
             <img
-              src={account?.profileImage || "/default-avatar.png"}
+              src={account?.profileImage}
               className="w-10 h-10 rounded-full object-cover"
             />
             <div>

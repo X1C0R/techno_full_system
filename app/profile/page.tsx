@@ -306,7 +306,12 @@ export default function ProfilePage() {
                 <NavItem icon={faCashRegister} label="Dashboard" />
               </Link>
             )}
-            {Role === "cashier" && (
+            {Role === "manager" && (
+              <Link href="/managerDashboard">
+                <NavItem icon={faCashRegister} label="Dashboard" />
+              </Link>
+            )}
+            {(Role === "cashier" || Role === "manager") && (
               <Link href="/ScannerPage">
                 <NavItem icon={faCashRegister} label="Cashier" />
               </Link>
@@ -349,14 +354,6 @@ export default function ProfilePage() {
             <h2 className="text-lg md:text-xl font-bold text-[#003527]">
               Cashier Portal
             </h2>
-            {/* <div className="flex gap-3 items-center">
-              <button>🔔</button>
-              <button>🕒</button>
-              <img
-                src={profileImage || "/default-avatar.png"}
-                className="w-10 h-10 rounded-full object-cover bg-gray-300"
-              />
-            </div> */}
           </div>
 
           {/* PROFILE CARD */}
@@ -368,7 +365,7 @@ export default function ProfilePage() {
               {/* IMAGE */}
               <div className="flex flex-col items-center">
                 <img
-                  src={profileImage || "/default-avatar.png"}
+                  src={profileImage || "No image"}
                   className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover bg-gray-300"
                 />
                 <label className="mt-2 text-sm cursor-pointer px-3 py-1 rounded inline-block text-center">

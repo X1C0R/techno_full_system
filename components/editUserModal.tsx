@@ -70,7 +70,7 @@ export default function ProfileModal({
 
           <div className="flex flex-col items-center">
             <img
-              src={profileImage || "/default-avatar.png"}
+              src={profileImage}
               className="w-24 h-24 rounded-full object-cover bg-gray-300"
             />
             <label className="mt-2 text-sm cursor-pointer px-3 py-1 rounded inline-block">

@@ -1,98 +1,97 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import ResumeShiftModal from "@/components/resume_shift"
-export const dynamic = "force-dynamic"
+
+// ✅ REMOVED: export const dynamic = "force-dynamic"
+// That was forcing full SSR on every hit — this page has no server data,
+// so Next.js should serve it as a static shell and hydrate on the client.
+
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [showResumeModal, setShowResumeModal] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   const router = useRouter()
 
+  // ✅ Only render after client mount — prevents SSR/hydration mismatch flash
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault()
+    e.preventDefault()
 
-  if (!email || !password) {
-    alert("Please fill all fields")
-    return
-  }
+    if (!email || !password) {
+      alert("Please fill all fields")
+      return
+    }
 
-  setLoading(true)
+    setLoading(true)
 
-  const { data, error } = await supabase
-    .from("accounts")
-    .select("*")
-    .eq("email", email)
-    .eq("password", password)
-    .single()
-
-  setLoading(false)
-
-  if (error || !data) {
-    alert("Invalid login")
-    return
-  }
-
-  // =========================
-  // 💾 SAVE USER
-  // =========================
-  localStorage.setItem("user", JSON.stringify(data))
-
-  // =========================
-  // 🟢 SET USER ACTIVE (IMPORTANT ADDITION)
-  // =========================
-  await supabase
-    .from("accounts")
-    .update({ status: "active" })
-    .eq("id", data.id)
-
-  const employeeId = data.employee_id
-
-  // =========================
-  // 🔍 CHECK PAUSED SHIFT
-  // =========================
-  const { data: pausedShift } = await supabase
-    .from("shifts")
-    .select("*")
-    .eq("employee_id", employeeId)
-    .is("clock_out", null)
-    .single()
-
-  if (pausedShift?.is_paused) {
-    setShowResumeModal(true)
-    return
-  }
-
-  // =========================
-  // 🚀 AUTO CLOCK-IN
-  // =========================
-  if (data.role === "cashier" || data.role === "manager") {
-    const { data: existingShift } = await supabase
-      .from("shifts")
-      .select("*")
-      .eq("employee_id", employeeId)
-      .is("clock_out", null)
+    // ─── 1. LOGIN CHECK ───────────────────────────────────────────────────
+    const { data, error } = await supabase
+      .from("accounts")
+      .select("id, employee_id, role, email, full_name, profile_image, status")
+      .eq("email", email)
+      .eq("password", password)
       .single()
 
-    if (!existingShift) {
+    if (error || !data) {
+      setLoading(false)
+      alert("Invalid login")
+      return
+    }
+
+    // 💾 SAVE USER
+    localStorage.setItem("user", JSON.stringify(data))
+
+    // ─── 2. STATUS UPDATE + SHIFT CHECK IN PARALLEL ───────────────────────
+    const [_, shiftResult] = await Promise.all([
+      supabase
+        .from("accounts")
+        .update({ status: "active" })
+        .eq("id", data.id),
+
+      supabase
+        .from("shifts")
+        .select("id, is_paused")
+        .eq("employee_id", data.employee_id)
+        .is("clock_out", null)
+        .maybeSingle(),
+    ])
+
+    const existingShift = shiftResult.data
+
+    // ─── 3. PAUSED SHIFT ──────────────────────────────────────────────────
+    if (existingShift?.is_paused) {
+      setLoading(false)
+      setShowResumeModal(true)
+      return
+    }
+
+    // ─── 4. CLOCK-IN IF NEEDED ────────────────────────────────────────────
+    if (
+      !existingShift &&
+      (data.role === "cashier" || data.role === "manager")
+    ) {
       await supabase.from("shifts").insert([
         {
-          employee_id: employeeId,
+          employee_id: data.employee_id,
           clock_in: new Date().toISOString(),
           clock_out: null,
           is_paused: false,
         },
       ])
     }
-  }
 
-  // =========================
-  // 🚀 REDIRECT
-  // =========================
+    setLoading(false)
+
+    // ─── 5. REDIRECT ──────────────────────────────────────────────────────
     if (data.role === "admin") {
       router.push("/adminDashboard")
     } else if (data.role === "manager") {
@@ -102,9 +101,7 @@ export default function LoginPage() {
     }
   }
 
-  // =========================
-  // ▶️ RESUME SHIFT
-  // =========================
+  // ─── RESUME SHIFT ─────────────────────────────────────────────────────────
   const handleResume = async () => {
     const storedUser = localStorage.getItem("user")
     if (!storedUser) return
@@ -113,58 +110,52 @@ export default function LoginPage() {
 
     const { data: shift } = await supabase
       .from("shifts")
-      .select("*")
+      .select("id")
       .eq("employee_id", user.employee_id)
       .is("clock_out", null)
-      .single()
+      .maybeSingle()
 
     if (!shift) return
 
     await supabase
       .from("shifts")
-      .update({
-        is_paused: false,
-        paused_at: null,
-      })
+      .update({ is_paused: false, paused_at: null })
       .eq("id", shift.id)
 
     setShowResumeModal(false)
-
     router.push("/ScannerPage")
   }
 
-  // =========================
-  // 🔄 START NEW SHIFT
-  // =========================
+  // ─── START NEW SHIFT ──────────────────────────────────────────────────────
   const handleNewShift = async () => {
     const storedUser = localStorage.getItem("user")
     if (!storedUser) return
 
     const user = JSON.parse(storedUser)
 
-    // close old shift
-    await supabase
-      .from("shifts")
-      .update({
-        clock_out: new Date().toISOString(),
-      })
-      .eq("employee_id", user.employee_id)
-      .is("clock_out", null)
+    await Promise.all([
+      supabase
+        .from("shifts")
+        .update({ clock_out: new Date().toISOString() })
+        .eq("employee_id", user.employee_id)
+        .is("clock_out", null),
 
-    // start new shift
-    await supabase.from("shifts").insert([
-      {
-        employee_id: user.employee_id,
-        clock_in: new Date().toISOString(),
-        clock_out: null,
-        is_paused: false,
-      },
+      supabase.from("shifts").insert([
+        {
+          employee_id: user.employee_id,
+          clock_in: new Date().toISOString(),
+          clock_out: null,
+          is_paused: false,
+        },
+      ]),
     ])
 
     setShowResumeModal(false)
-
     router.push("/ScannerPage")
   }
+
+  // ✅ Return null until client is ready — no SSR flash
+  if (!mounted) return null
 
   return (
     <div className="min-h-screen bg-[#f8f9ff] flex items-center justify-center px-4">
@@ -235,7 +226,7 @@ export default function LoginPage() {
         </div> */}
       </div>
 
-      {/* ✅ MODAL */}
+      {/* MODAL */}
       {showResumeModal && (
         <ResumeShiftModal
           isOpen={showResumeModal}

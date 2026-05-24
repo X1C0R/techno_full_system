@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo, useCallback } from "react"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import MenuIcon from "@mui/icons-material/Menu"
@@ -16,6 +16,10 @@ import {
 } from "@fortawesome/free-solid-svg-icons"
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu"
 import { useAuthGuard } from "../hooks/useAuthGuard"
+import EditProductModal from "@/components/editProducts"
+
+// ✅ SAME key as ScannerPage — must match
+const CART_KEY = "POS_CART"
 
 type Account = {
   fullname: string
@@ -53,18 +57,21 @@ function NavItem({
     </div>
   )
 }
+
 export const dynamic = "force-dynamic"
+
 export default function InventoryPage() {
-    const { role, loading } = useAuthGuard(["cashier", "manager", "admin"])
+  const { role, loading } = useAuthGuard(["cashier", "manager", "admin"])
   const [open, setOpen] = useState(false)
   const [products, setProducts] = useState<any[]>([])
-  const [filtered, setFiltered] = useState<any[]>([])
   const [activeCategory, setActiveCategory] = useState("All")
   const [search, setSearch] = useState("")
   const [Loading, setLoading] = useState(true)
   const [account, setAccount] = useState<Account | null>(null)
+  const [editProduct, setEditProduct] = useState<any>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
-  // ✅ FETCH PRODUCTS FROM SUPABASE
+  // ─── FETCH PRODUCTS ───────────────────────────────────────────────────────
   useEffect(() => {
     const fetchProducts = async () => {
       const { data, error } = await supabase
@@ -72,21 +79,36 @@ export default function InventoryPage() {
         .select("*")
         .order("name", { ascending: true })
 
-      if (error) {
-        console.error("Fetch error:", error)
-        return
-      }
-
+      if (error) { console.error("Fetch error:", error); return }
       setProducts(data || [])
-      setFiltered(data || [])
       setLoading(false)
     }
-
     fetchProducts()
   }, [])
 
-  // ✅ FILTER BY CATEGORY + SEARCH
+  // ─── FETCH USER ───────────────────────────────────────────────────────────
   useEffect(() => {
+    const fetchUser = async () => {
+      const stored = localStorage.getItem("user")
+      if (!stored) return
+      const parsed = JSON.parse(stored)
+      const { data } = await supabase
+        .from("accounts")
+        .select("full_name, role, profile_image")
+        .eq("id", parsed.id)
+        .single()
+      if (!data) return
+      setAccount({
+        fullname: data.full_name,
+        role: data.role,
+        profileImage: data.profile_image,
+      })
+    }
+    fetchUser()
+  }, [])
+
+  // ─── MEMOIZED FILTER — replaces the useEffect + filtered state ────────────
+  const filtered = useMemo(() => {
     let result = products
 
     if (activeCategory !== "All") {
@@ -96,57 +118,33 @@ export default function InventoryPage() {
     }
 
     if (search.trim()) {
+      const lower = search.toLowerCase()
       result = result.filter(
         (p) =>
-          p.name?.toLowerCase().includes(search.toLowerCase()) ||
-          p.barcode?.toLowerCase().includes(search.toLowerCase())
+          p.name?.toLowerCase().includes(lower) ||
+          p.barcode?.toLowerCase().includes(lower)
       )
     }
 
-    setFiltered(result)
+    return result
   }, [activeCategory, search, products])
 
-  // ✅ FETCH USER
-  useEffect(() => {
-    const fetchUser = async () => {
-      const stored = localStorage.getItem("user")
-      if (!stored) return
+  // ─── MEMOIZED STATS ───────────────────────────────────────────────────────
+  const { totalItems, lowStock, outOfStock } = useMemo(() => ({
+    totalItems: products.length,
+    lowStock: products.filter((p) => p.quantity > 0 && p.quantity <= 10).length,
+    outOfStock: products.filter((p) => p.quantity === 0).length,
+  }), [products])
 
-      const parsed = JSON.parse(stored)
-
-      const { data } = await supabase
-        .from("accounts")
-        .select("full_name, role, profile_image")
-        .eq("id", parsed.id)
-        .single()
-
-      if (!data) return
-
-      setAccount({
-        fullname: data.full_name,
-        role: data.role,
-        profileImage: data.profile_image || "/default-avatar.png",
-      })
-    }
-
-    fetchUser()
-  }, [])
-
-  // ✅ DYNAMIC STATS
-  const totalItems = products.length
-  const lowStock = products.filter((p) => p.quantity > 0 && p.quantity <= 10).length
-  const outOfStock = products.filter((p) => p.quantity === 0).length
-
-  // ✅ UNIQUE CATEGORIES from DB
-  const categories = [
+  // ─── UNIQUE CATEGORIES ────────────────────────────────────────────────────
+  const categories = useMemo(() => [
     "All",
     ...Array.from(new Set(products.map((p) => p.category).filter(Boolean))),
-  ]
+  ], [products])
 
-  // ✅ CATEGORY FILTER HANDLER
-  const handleCategory = (cat: string) => {
+  // ─── CATEGORY FILTER ──────────────────────────────────────────────────────
+  const handleCategory = useCallback((cat: string) => {
     setActiveCategory(cat)
-
     const grid = document.getElementById("product-grid")
     if (!grid) return
     grid.style.opacity = "0.4"
@@ -155,7 +153,52 @@ export default function InventoryPage() {
       grid.style.opacity = "1"
       grid.style.transform = "translateY(0)"
     }, 300)
+  }, [])
+
+  // ─── SAVE PRODUCT EDIT ────────────────────────────────────────────────────
+  const handleProductSave = async ({
+    quantity, category, price,
+  }: {
+    quantity: number; category: string; price: number
+  }) => {
+    if (!editProduct) return
+    const { error } = await supabase
+      .from("products")
+      .update({ quantity, category, price })
+      .eq("id", editProduct.id)
+    if (error) { alert(error.message); return }
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === editProduct.id ? { ...p, quantity, category, price } : p
+      )
+    )
   }
+
+  // ─── BUY BUTTON — merges with existing cart, never wipes scanned items ────
+  const handleBuy = useCallback((p: any) => {
+    const existing = localStorage.getItem(CART_KEY)
+    const cart = existing ? JSON.parse(existing) : []
+
+    const index = cart.findIndex((i: any) => i.barcode === p.barcode)
+
+    if (index !== -1) {
+      // product already in cart (could have been scanned) — just bump qty
+      cart[index].qty += 1
+    } else {
+      cart.push({
+        id: p.id,
+        name: p.name,
+        barcode: p.barcode,
+        price: p.price,
+        quantity: p.quantity,
+        category: p.category,
+        qty: 1,
+      })
+    }
+
+    localStorage.setItem(CART_KEY, JSON.stringify(cart))
+    alert(`${p.name} added to cart!`)
+  }, [])
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-on-background font-body-md">
@@ -185,17 +228,20 @@ export default function InventoryPage() {
 
         <nav className="flex flex-col gap-2 mt-6 px-4">
           {account?.role === "admin" && (
-          <Link href="/adminDashboard">
-            <NavItem icon={faCashRegister} label="Dashboard" />
-          </Link>
+            <Link href="/adminDashboard">
+              <NavItem icon={faCashRegister} label="Dashboard" />
+            </Link>
           )}
-          
-          {account?.role === "cashier" && (
-          <Link href="/ScannerPage">
-            <NavItem icon={faCashRegister} label="Cashier"/>
-          </Link>
+          {account?.role === "manager" && (
+            <Link href="/managerDashboard">
+              <NavItem icon={faCashRegister} label="Dashboard" />
+            </Link>
           )}
-          
+          {(account?.role === "cashier" || account?.role === "manager") && (
+            <Link href="/ScannerPage">
+              <NavItem icon={faCashRegister} label="Cashier" />
+            </Link>
+          )}
           <Link href="/inventoryPage">
             <NavItem icon={faBoxesStacked} label="Inventory" active />
           </Link>
@@ -206,11 +252,9 @@ export default function InventoryPage() {
               </Link>
               <Link href="/employee">
                 <NavItem icon={<HistoryEduIcon />} label="Employee" />
-              </Link> 
+              </Link>
             </>
           )}
-          
-
           <Link href="/utang">
             <NavItem icon={<HistoryEduIcon />} label="Utang" />
           </Link>
@@ -225,11 +269,10 @@ export default function InventoryPage() {
             <img
               src={account?.profileImage || "/default-avatar.png"}
               className="w-10 h-10 rounded-full object-cover"
+              loading="lazy"
             />
             <div>
-              <p className="font-semibold text-sm">
-                {account?.fullname || "Loading..."}
-              </p>
+              <p className="font-semibold text-sm">{account?.fullname || "Loading..."}</p>
               <p className="text-sm text-[#FFB900]">{account?.role}</p>
             </div>
           </div>
@@ -314,7 +357,6 @@ export default function InventoryPage() {
               <p className="text-center text-gray-400 py-10">No products found.</p>
             ) : (
               filtered.map((p, i) => {
-                // ✅ STOCK STATUS
                 const isOutOfStock = p.quantity === 0
                 const isLowStock = p.quantity > 0 && p.quantity <= 10
 
@@ -324,8 +366,6 @@ export default function InventoryPage() {
                     className="p-4 bg-white rounded-xl border flex justify-between items-center"
                   >
                     <div className="flex items-center gap-3">
-
-                      {/* ✅ INDICATOR DOT */}
                       <div
                         className={`w-3 h-3 rounded-full shrink-0 ${
                           isOutOfStock
@@ -335,7 +375,6 @@ export default function InventoryPage() {
                             : "bg-green-500"
                         }`}
                       />
-
                       <div>
                         <h3 className="font-bold">{p.name}</h3>
                         <p className="text-sm text-gray-500">{p.category}</p>
@@ -355,47 +394,41 @@ export default function InventoryPage() {
 
                     <div className="text-right">
                       <p className="font-bold">₱{Number(p.price).toFixed(2)}</p>
-                      {account?.role == "admin" && (
-                      <button className="mt-2 px-3 py-1 bg-primary text-white rounded">
-                        Edit
-                      </button>
+                      {account?.role === "manager" && (
+                        <button onClick={() => {
+                          setEditProduct(p)
+                          setShowEditModal(true)
+                        }}>
+                          Edit
+                        </button>
                       )}
-                      {account?.role == "cashier" && (
-                      <button
-                        className="mt-2 px-3 py-1 bg-primary text-white rounded disabled:opacity-40"
-                        disabled={p.quantity === 0}
-                        onClick={() => {
-                          // ✅ get existing cart from localStorage
-                          const existing = localStorage.getItem("cart")
-                          const cart = existing ? JSON.parse(existing) : []
-
-                          // ✅ check if product already in cart
-                          const index = cart.findIndex((i: any) => i.barcode === p.barcode)
-
-                          if (index !== -1) {
-                            cart[index].qty += 1
-                          } else {
-                            cart.push({ ...p, qty: 1 })
-                          }
-
-                          // ✅ save back to localStorage
-                          localStorage.setItem("cart", JSON.stringify(cart))
-
-                          alert(`${p.name} added to cart!`)
-                        }}
-                      >
-                        Buy
-                      </button>
-                    )}
+                      {account?.role === "cashier" && (
+                        <button
+                          className="mt-2 px-3 py-1 bg-primary text-white rounded disabled:opacity-40"
+                          disabled={p.quantity === 0}
+                          onClick={() => handleBuy(p)}
+                        >
+                          Buy
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
               })
             )}
           </div>
-
         </div>
       </main>
+
+      <EditProductModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false)
+          setEditProduct(null)
+        }}
+        product={editProduct}
+        onSave={handleProductSave}
+      />
     </div>
   )
 }

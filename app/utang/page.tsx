@@ -77,37 +77,42 @@ export default function UtangPage() {
       role: user.role,
       profileImage: user.profile_image
         ? user.profile_image + "?t=" + Date.now()
-        : "/default-avatar.png",
+        : "",
       employee_id: user.employee_id,
     })
   }, [])
 
   // FETCH UTANG RECORDS
   useEffect(() => {
-    const fetchUtang = async () => {
-      const storedUser = localStorage.getItem("user")
-      if (!storedUser) return
-      const user = JSON.parse(storedUser)
+  const fetchUtang = async () => {
+    const storedUser = localStorage.getItem("user")
+    if (!storedUser) return
 
-      let query = supabase
-        .from("utang_records")
-        .select(`*, accounts (full_name, employee_id)`)
-        .eq("status", "unpaid")
-        .order("created_at", { ascending: false })
+    const user = JSON.parse(storedUser)
 
-      if (user.role !== "admin") {
-        query = query.eq("employee_id", user.employee_id)
-      }
+    let query = supabase
+      .from("utang_records")
+      .select(`*, accounts (full_name, employee_id)`)
+      .eq("status", "unpaid")
+      .order("created_at", { ascending: false })
 
-      const { data, error } = await query
-      if (error) {
-        console.log("UTANG ERROR:", error.message)
-        return
-      }
-      setUtangRecords(data || [])
+    // ✅ ONLY cashier is restricted
+    if (user.role === "cashier") {
+      query = query.eq("employee_id", user.employee_id)
     }
-    fetchUtang()
-  }, [])
+
+    const { data, error } = await query
+
+    if (error) {
+      console.log("UTANG ERROR:", error.message)
+      return
+    }
+
+    setUtangRecords(data || [])
+  }
+
+  fetchUtang()
+}, [])
 
   const filteredRecords = useMemo(() => {
     const q = search.toLowerCase()
@@ -196,7 +201,12 @@ export default function UtangPage() {
               <NavItem icon={faCashRegister} label="Dashboard" />
             </Link>
           )}
-          {account?.role === "cashier" && (
+          {account?.role === "manager" && (
+            <Link href="/managerDashboard">
+              <NavItem icon={faCashRegister} label="Dashboard" />
+            </Link>
+          )}
+          {(account?.role === "cashier" || account?.role === "manager") && (
             <Link href="/ScannerPage">
               <NavItem icon={faCashRegister} label="Cashier" />
             </Link>
@@ -225,7 +235,7 @@ export default function UtangPage() {
         <div className="mt-auto p-4">
           <div className="flex items-center gap-3 border rounded-xl p-2">
             <img
-              src={account?.profileImage || "/default-avatar.png"}
+              src={account?.profileImage}
               className="w-10 h-10 rounded-full object-cover"
             />
             <div>
