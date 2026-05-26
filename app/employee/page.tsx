@@ -15,6 +15,9 @@ import HistoryEduIcon from "@mui/icons-material/HistoryEdu"
 import AddNewUser from "@/components/addNewUser"
 import EditUserModal from "@/components/editUserModal"
 import { useAuthGuard } from "../hooks/useAuthGuard"
+import StickyNote2Icon from '@mui/icons-material/StickyNote2';
+import WorkHoursModal from "@/components/workHourModal"
+
 
 type Account = {
   id: string
@@ -39,16 +42,20 @@ function NavItem({
   return (
     <div
       className={`
-        flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer
-        transition-all duration-200
+        flex items-center gap-4 px-6 py-4 rounded-xl mx-3
+        font-bold transition-all duration-200 cursor-pointer
         ${active
-          ? "bg-[#FFB900] text-[#F54900]"
-          : "hover:bg-[#FFB900] hover:text-[#F54900]"
+          ? "bg-[#064e3b] text-[#b0f0d6]"
+          : "text-[#95d3ba] hover:bg-[#064e3b]/20 hover:text-white"
         }
       `}
     >
-      {typeof icon === "object" && icon?.type ? icon : <FontAwesomeIcon icon={icon} />}
-      {label}
+      {typeof icon === "object" && icon?.type ? (
+        icon
+      ) : (
+        <FontAwesomeIcon icon={icon} />
+      )}
+      <span className="text-sm font-bold">{label}</span>
     </div>
   )
 }
@@ -68,7 +75,9 @@ export default function EmployeesPage() {
   const [fullNameState, setFullNameState] = useState("")
   const [emailState, setEmailState] = useState("")
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [currentUserRole, setCurrentUserRole] = useState("") // ✅ logged-in user's role
+  const [currentUserRole, setCurrentUserRole] = useState("")
+  const [hoursOpen, setHoursOpen] = useState(false)
+  const [profileImage, setProfileImage] = useState("")
 
   // FETCH EMPLOYEES
   useEffect(() => {
@@ -93,7 +102,11 @@ export default function EmployeesPage() {
     setCurrentUserRole(user.role?.trim().toLowerCase()) // ✅ get role from localStorage
   }, [])
 
-  const otherEmployees = employees.filter((emp) => emp.id !== currentUserId)
+  const otherEmployees = employees.filter(
+    (emp) =>
+      emp.id !== currentUserId &&
+      emp.role?.toLowerCase() !== "admin"
+  )
 
   const filtered = otherEmployees.filter((emp) =>
     emp.full_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -121,28 +134,113 @@ export default function EmployeesPage() {
   }
 
   const handleDeleteUser = async () => {
-    if (!selectedUser) return
-    const confirmDelete = confirm("Are you sure you want to delete this account?")
-    if (!confirmDelete) return
+  if (!selectedUser) return
+  const confirmDelete = confirm("Are you sure you want to delete this account? This will also delete all their related records.")
+  if (!confirmDelete) return
 
-    const { error } = await supabase
-      .from("accounts")
-      .delete()
-      .eq("id", selectedUser.id)
 
-    if (error) { alert(error.message); return }
+  const { error: utangError } = await supabase
+    .from("utang_records")
+    .delete()
+    .eq("employee_id", selectedUser.employee_id)
 
-    alert("Account deleted")
-    setEmployees((prev) => prev.filter((e) => e.id !== selectedUser.id))
-    setShowProfileModal(false)
-    setSelectedUser(null)
+  if (utangError) {
+    alert("Failed to delete utang records: " + utangError.message)
+    return
   }
+
+
+  const { error: shiftsError } = await supabase
+    .from("shifts")
+    .delete()
+    .eq("employee_id", selectedUser.employee_id)
+
+  if (shiftsError) {
+    alert("Failed to delete shifts: " + shiftsError.message)
+    return
+  }
+
+
+  const { error: salesError } = await supabase
+    .from("sales")
+    .delete()
+    .eq("employee_id", selectedUser.employee_id)
+
+  if (salesError) {
+    alert("Failed to delete sales: " + salesError.message)
+    return
+  }
+
+  
+  const { error } = await supabase
+    .from("accounts")
+    .delete()
+    .eq("id", selectedUser.id)
+
+  if (error) { alert(error.message); return }
+
+  alert("Account and all related records deleted")
+  setEmployees((prev) => prev.filter((e) => e.id !== selectedUser.id))
+  setShowProfileModal(false)
+  setSelectedUser(null)
+}
+
+
+ const handleImageUpload = async (e: any) => {
+  const file = e.target.files[0]
+  if (!file || !selectedUser) return
+
+  const fileExt = file.name.split(".").pop()
+  const fileName = `${selectedUser.employee_id}.${Date.now()}.${fileExt}`
+
+  // ✅ Upload to storage
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
+    .upload(fileName, file, { upsert: true })
+
+  if (uploadError) {
+    console.error(uploadError)
+    alert("Upload failed")
+    return
+  }
+
+  // ✅ Get public URL
+  const { data } = supabase.storage
+    .from("avatars")
+    .getPublicUrl(fileName)
+
+  const publicUrl = data.publicUrl + "?t=" + Date.now()
+
+  // ✅ VERY IMPORTANT: save to database
+  const { error: updateError } = await supabase
+    .from("accounts")
+    .update({ profile_image: publicUrl })
+    .eq("id", selectedUser.id)
+
+  if (updateError) {
+    console.error(updateError)
+    alert("Failed to save image")
+    return
+  }
+
+  // ✅ update UI immediately
+  setEmployees((prev) =>
+    prev.map((emp) =>
+      emp.id === selectedUser.id
+        ? { ...emp, profile_image: publicUrl }
+        : emp
+    )
+  )
+
+  e.target.value = ""
+}
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen">
       <p className="text-gray-400">Loading...</p>
     </div>
   )
+  
 
   return (
     <div className="bg-[#f8f9ff] text-on-surface font-body-md min-h-screen flex overflow-hidden">
@@ -154,7 +252,7 @@ export default function EmployeesPage() {
           {open ? <CloseIcon /> : <MenuIcon />}
         </button>
       </div>
-
+      
       {/* SIDEBAR */}
       <aside
         className={`
@@ -185,6 +283,12 @@ export default function EmployeesPage() {
             </Link>
           )}
 
+          {(currentUserRole === "manager" || currentUserRole === "cashier") && (
+            <Link href="/ScannerPage">
+              <NavItem icon={faCashRegister} label="Cashier" />
+            </Link>
+          )}
+
           <Link href="/inventoryPage">
             <NavItem icon={faBoxesStacked} label="Inventory" />
           </Link>
@@ -198,6 +302,12 @@ export default function EmployeesPage() {
           <Link href="/employee">
             <NavItem icon={<HistoryEduIcon />} label="Employee" active />
           </Link>
+
+          {currentUserRole === "manager" && (
+            <Link href="/logsPage">
+              <NavItem icon={<StickyNote2Icon />} label="Logs" />
+            </Link>
+          )}
 
           <Link href="/utang">
             <NavItem icon={<HistoryEduIcon />} label="Utang" />
@@ -281,7 +391,7 @@ export default function EmployeesPage() {
 
         {/* TABLE */}
         <div className="p-4 md:p-6 overflow-x-auto">
-          <table className="w-full min-w-[600px] border-collapse">
+          <table className="w-full min-w-150 border-collapse">
             <thead>
               <tr className="bg-gray-100 text-left">
                 <th className="p-3 text-sm">Employee</th>
@@ -302,7 +412,7 @@ export default function EmployeesPage() {
                     <td className="p-3">
                       <div className="flex items-center gap-3">
                         <img
-                          src={emp.profile_image || ""}
+                          src={emp.profile_image}
                           className="w-10 h-10 rounded-full object-cover"
                         />
                         <div>
@@ -336,6 +446,15 @@ export default function EmployeesPage() {
                         className="px-4 py-2 bg-[#003527] text-white rounded-lg text-sm"
                       >
                         Edit
+                      </button >
+                      <button
+                        className="ml-2.5 px-4 py-2 bg-[#003527] text-white rounded-lg text-sm"
+                        onClick={() => {
+                          setSelectedUser(emp) // VERY IMPORTANT
+                          setHoursOpen(true)
+                        }}
+                      >
+                        Hours
                       </button>
                     </td>
                   </tr>
@@ -375,11 +494,16 @@ export default function EmployeesPage() {
           setFullName={setFullNameState}
           setPhone={setPhoneState}
           setEmail={setEmailState}
-          handleImageUpload={() => {}}
+          handleImageUpload={handleImageUpload}
           handleSave={handleUpdateUser}
           handleDelete={handleDeleteUser}
         />
       )}
+      <WorkHoursModal
+        open={hoursOpen}
+        onClose={() => setHoursOpen(false)}
+        employeeId={selectedUser?.employee_id || ""}
+      />
     </div>
   )
 }

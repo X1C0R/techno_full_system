@@ -3,7 +3,7 @@ import "./scanner.css"
 import { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faCashRegister, faBoxesStacked, faCircleUser } from "@fortawesome/free-solid-svg-icons"
+import { faCashRegister, faBoxesStacked, faCircleUser, faAddressBook } from "@fortawesome/free-solid-svg-icons"
 import HistoryEduIcon from '@mui/icons-material/HistoryEdu';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import Link from "next/link"
@@ -12,8 +12,8 @@ import { Timestamp } from "next/dist/server/lib/cache-handlers/types"
 import MenuIcon from "@mui/icons-material/Menu"
 import CloseIcon from "@mui/icons-material/Close"
 import { useAuthGuard } from "../hooks/useAuthGuard"
+import StickyNote2Icon from '@mui/icons-material/StickyNote2';
 
-// ✅ ONE key used everywhere
 const CART_KEY = "POS_CART"
 
 type Product = {
@@ -47,12 +47,11 @@ function NavItem({
   return (
     <div
       className={`
-        flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer
-        transition-all duration-200
-        ${
-          active
-            ? "bg-[#FFB900] text-[#F54900]"
-            : "hover:bg-[#FFB900] hover:text-[#F54900]"
+        flex items-center gap-4 px-6 py-4 rounded-xl mx-3
+        font-bold transition-all duration-200 cursor-pointer
+        ${active
+          ? "bg-[#064e3b] text-[#b0f0d6]"
+          : "text-[#95d3ba] hover:bg-[#064e3b]/20 hover:text-white"
         }
       `}
     >
@@ -61,7 +60,7 @@ function NavItem({
       ) : (
         <FontAwesomeIcon icon={icon} />
       )}
-      {label}
+      <span className="text-sm font-bold">{label}</span>
     </div>
   )
 }
@@ -71,7 +70,6 @@ export const dynamic = "force-dynamic"
 export default function Dashboard() {
   const { role, loading } = useAuthGuard(["cashier", "manager", "admin"])
   const [cart, setCart] = useState<CartItem[]>([])
-  const [hoverInventory, setHoverInventory] = useState(false)
   const [account, setAccount] = useState<Account | null>(null)
   const [hoverUtang, setHoverUtang] = useState(false)
   const [selected, setSelected] = useState<"cash" | "utang">("cash")
@@ -86,27 +84,41 @@ export default function Dashboard() {
   const [open, setOpen] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ─── PERSIST CART TO LOCALSTORAGE whenever it changes ────────────────────
-  // This replaces the old "load once + clear" approach.
-  // Cart is always kept in sync so scanned items and inventory items coexist.
-  useEffect(() => {
-    if (cart.length === 0) return
-    localStorage.setItem(CART_KEY, JSON.stringify(cart))
-  }, [cart])
+  // ─── TRACK IF INITIAL LOAD IS DONE ───────────────────────────────────────
+  // Prevents the persist effect from writing an empty [] over a valid saved cart
+  // during the brief moment before the load effect runs.
+  const isLoaded = useRef(false)
 
   // ─── LOAD CART FROM LOCALSTORAGE ON MOUNT ────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem(CART_KEY)
-    if (!saved) return
-    try {
-      const parsed = JSON.parse(saved)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        setCart(parsed)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCart(parsed)
+        }
+      } catch {
+        localStorage.removeItem(CART_KEY)
       }
-    } catch {
-      localStorage.removeItem(CART_KEY)
     }
+    // Mark load as complete so the persist effect can start writing
+    isLoaded.current = true
   }, [])
+
+  // ─── PERSIST CART TO LOCALSTORAGE on every change ────────────────────────
+  // ✅ FIX: removed the `if (cart.length === 0) return` guard.
+  // That was the bug — when you decremented qty the updated cart never saved,
+  // so on refresh the old stale cart came back.
+  // Now we always write. If cart is empty we remove the key to keep storage clean.
+  useEffect(() => {
+    if (!isLoaded.current) return  // don't overwrite on first render before load
+    if (cart.length === 0) {
+      localStorage.removeItem(CART_KEY)
+    } else {
+      localStorage.setItem(CART_KEY, JSON.stringify(cart))
+    }
+  }, [cart])
 
   // ─── FETCH PRODUCTS ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -212,6 +224,9 @@ export default function Dashboard() {
   }
 
   // ─── STABLE updateQty ────────────────────────────────────────────────────
+  // ✅ FIX: state update triggers the persist effect above which saves to localStorage.
+  // Whether the item came from a scan or from the inventory Buy button doesn't matter —
+  // both live in the same cart array, and every change now gets persisted immediately.
   const updateQty = useCallback((barcode: string, delta: number) => {
     setCart((prev) =>
       prev
@@ -303,9 +318,8 @@ export default function Dashboard() {
         if (utangError) throw utangError
       }
 
-      // ✅ Clear cart from state AND storage after successful sale
       setCart([])
-      localStorage.removeItem(CART_KEY)
+      // cart.length === 0 now, persist effect will call localStorage.removeItem cleanly
       setCustomerName("")
       setCustomerPhone("")
       setShowUtangModal(false)
@@ -351,21 +365,36 @@ export default function Dashboard() {
                 <NavItem icon={faCashRegister} label="Dashboard" />
               </Link>
             )}
+            {account?.role === "manager" && (
+              <Link href="/managerDashboard">
+                <NavItem icon={faCashRegister} label="Dashboard" />
+              </Link>
+            )}
             <Link href="/ScannerPage">
               <NavItem icon={faCashRegister} label="Cashier" active />
             </Link>
             <Link href="/inventoryPage">
               <NavItem icon={faBoxesStacked} label="Inventory" />
             </Link>
+
             {account?.role === "admin" && (
+              <Link href="/analyticsPage">
+                <NavItem icon={<HistoryEduIcon />} label="Analytics" />
+              </Link>
+            )}
+
+            {(account?.role === "admin" || account?.role === "manager") && (
               <>
-                <Link href="/analyticsPage">
-                  <NavItem icon={<HistoryEduIcon />} label="Analytics" />
-                </Link>
+                
                 <Link href="/employee">
-                  <NavItem icon={<HistoryEduIcon />} label="Employee" />
+                  <NavItem icon={faAddressBook} label="Employee" />
                 </Link>
               </>
+            )}
+            {account?.role === "manager" && (
+              <Link href="/logsPage">
+                <NavItem icon={<StickyNote2Icon />} label="Logs" />
+              </Link>
             )}
             <Link href="/utang">
               <NavItem icon={<HistoryEduIcon />} label="Utang" />

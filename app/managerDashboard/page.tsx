@@ -15,8 +15,9 @@ import { useAuthGuard } from "../hooks/useAuthGuard"
 import MenuIcon from "@mui/icons-material/Menu"
 import CloseIcon from "@mui/icons-material/Close"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faCashRegister, faBoxesStacked, faCircleUser } from "@fortawesome/free-solid-svg-icons"
+import { faCashRegister, faBoxesStacked, faCircleUser, faAddressBook  } from "@fortawesome/free-solid-svg-icons"
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu"
+import StickyNote2Icon from '@mui/icons-material/StickyNote2';
 
 type Account = {
   fullname: string
@@ -60,16 +61,20 @@ function NavItem({
   return (
     <div
       className={`
-        flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer
-        transition-all duration-200
+        flex items-center gap-4 px-6 py-4 rounded-xl mx-3
+        font-bold transition-all duration-200 cursor-pointer
         ${active
-          ? "bg-[#FFB900] text-[#F54900]"
-          : "hover:bg-[#FFB900] hover:text-[#F54900]"
+          ? "bg-[#064e3b] text-[#b0f0d6]"
+          : "text-[#95d3ba] hover:bg-[#064e3b]/20 hover:text-white"
         }
       `}
     >
-      {typeof icon === "object" && icon?.type ? icon : <FontAwesomeIcon icon={icon} />}
-      {label}
+      {typeof icon === "object" && icon?.type ? (
+        icon
+      ) : (
+        <FontAwesomeIcon icon={icon} />
+      )}
+      <span className="text-sm font-bold">{label}</span>
     </div>
   )
 }
@@ -258,55 +263,73 @@ export default function ManagerDashboard() {
 
       {/* MOBILE TOP BAR */}
       <div className="md:hidden fixed top-0 left-0 right-0 flex justify-between items-center bg-[#003527] text-white p-4 z-50">
-        <h1 className="text-xl font-bold text-[#fea619]">Tory POS</h1>
+        <h1 className="text-xl font-bold text-[#FFB900]">Tory POS</h1>
         <button onClick={() => setOpen(!open)}>
           {open ? <CloseIcon /> : <MenuIcon />}
         </button>
       </div>
-
+      
       {/* SIDEBAR */}
-              {/* MOBILE TOP BAR */}
-        <div className="md:hidden fixed top-0 left-0 right-0 flex justify-between items-center bg-[#003527] text-white p-4 z-50">
-          <h1 className="text-xl font-bold text-[#FFB900]">Tory POS</h1>
-          <button onClick={() => setOpen(!open)}>
-            {open ? <CloseIcon /> : <MenuIcon />}
-          </button>
+      <aside
+        className={`
+          fixed md:static top-0 left-0
+          h-screen w-64 bg-[#003527] text-white
+          flex flex-col overflow-hidden
+          transform transition-transform duration-300 z-40
+          ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+        `}
+      >
+        <div className="pl-4 pt-16 md:pt-6">
+          <h1 className="text-5xl font-bold text-[#FFB900]">Tory</h1>
+          <p className="text-sm">POS SYSTEM</p>
         </div>
 
-        {/* SIDEBAR */}
-        <aside
-          className={`
-            fixed md:static top-0 left-0
-            h-screen w-64 bg-[#003527] text-white
-            flex flex-col overflow-hidden
-            transform transition-transform duration-300 z-50
-            ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-          `}
-        >
-          <div className="pl-4 pt-16 md:pt-6">
-            <h1 className="text-5xl font-bold text-[#FFB900]">Tory</h1>
-            <p className="text-sm">POS SYSTEM</p>
-          </div>
+        <nav className="flex flex-col gap-2 mt-6 px-4">
 
-          <nav className="flex flex-col gap-2 mt-6 px-4">
+          {account?.role === "admin" && (
+            <Link href="/adminDashboard">
+              <NavItem icon={faCashRegister} label="Dashboard" />
+            </Link>
+          )}
+
             <Link href="/managerDashboard">
               <NavItem icon={faCashRegister} label="Dashboard" active />
             </Link>
-            <Link href="/ScannerPage">
-              <NavItem icon={faCashRegister} label="Cashier" />
-            </Link>
-            <Link href="/inventoryPage">
-              <NavItem icon={faBoxesStacked} label="Inventory" />
-            </Link>
-            <Link href="/utang">
-              <NavItem icon={<HistoryEduIcon />} label="Utang" />
-            </Link>
-            <Link href="/profile">
-              <NavItem icon={faCircleUser} label="Users" />
-            </Link>
-          </nav>
 
-          {/* PROFILE */}
+             {(account?.role === "cashier" || account?.role === "manager") && (
+                <Link href="/ScannerPage">
+                  <NavItem icon={faCashRegister} label="Cashier" />
+                </Link>
+              )}
+
+
+          <Link href="/inventoryPage">
+            <NavItem icon={faBoxesStacked} label="Inventory" />
+          </Link>
+
+          {account?.role === "admin" && (
+             <Link href="/analyticsPage">
+              <NavItem icon={<HistoryEduIcon />} label="Analytics" />
+            </Link>
+          )}
+
+          <Link href="/employee">
+            <NavItem icon={faAddressBook} label="Employee"  />
+          </Link>
+          
+          <Link href="/logsPage">
+            <NavItem icon={<StickyNote2Icon/>} label="Logs"/>
+          </Link>
+
+          <Link href="/utang">
+            <NavItem icon={<HistoryEduIcon />} label="Utang" />
+          </Link>
+
+          <Link href="/profile">
+            <NavItem icon={faCircleUser} label="Users" />
+          </Link>
+        </nav>
+
           <div className="mt-auto p-4">
             <div className="flex items-center gap-3 border rounded-xl p-2">
               <img
@@ -321,7 +344,7 @@ export default function ManagerDashboard() {
               </div>
             </div>
           </div>
-        </aside>
+      </aside>
 
       {/* OVERLAY */}
       {open && (
@@ -330,6 +353,7 @@ export default function ManagerDashboard() {
           onClick={() => setOpen(false)}
         />
       )}
+
 
       {/* MAIN */}
       <main className="flex-1 overflow-y-auto mt-14 md:mt-0 p-4 md:p-6">

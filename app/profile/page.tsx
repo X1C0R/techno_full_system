@@ -29,16 +29,20 @@ function NavItem({
   return (
     <div
       className={`
-        flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer
-        transition-all duration-200
+        flex items-center gap-4 px-6 py-4 rounded-xl mx-3
+        font-bold transition-all duration-200 cursor-pointer
         ${active
-          ? "bg-[#FFB900] text-[#F54900]"
-          : "hover:bg-[#FFB900] hover:text-[#F54900]"
+          ? "bg-[#064e3b] text-[#b0f0d6]"
+          : "text-[#95d3ba] hover:bg-[#064e3b]/20 hover:text-white"
         }
       `}
     >
-      {typeof icon === "object" && icon?.type ? icon : <FontAwesomeIcon icon={icon} />}
-      {label}
+      {typeof icon === "object" && icon?.type ? (
+        icon
+      ) : (
+        <FontAwesomeIcon icon={icon} />
+      )}
+      <span className="text-sm font-bold">{label}</span>
     </div>
   )
 }
@@ -323,11 +327,18 @@ export default function ProfilePage() {
               <>
                 <Link href="/analyticsPage">
                   <NavItem icon={<HistoryEduIcon />} label="Analytics" />
-                </Link>
-                <Link href="/employee">
-                  <NavItem icon={<HistoryEduIcon />} label="Employee" />
-                </Link>
+                </Link>   
               </>
+            )}
+            {(Role === "manager" || Role === "admin" ) && (
+              <Link href="/employee">
+                <NavItem icon={<HistoryEduIcon />} label="Employee" />
+              </Link>
+            )}
+            {Role === "manager" && (
+              <Link href="/logsPage">
+                <NavItem icon={<HistoryEduIcon />} label="Logs"  />
+              </Link>
             )}
             <Link href="/utang">
               <NavItem icon={<HistoryEduIcon />} label="Utang" />

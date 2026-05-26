@@ -17,6 +17,7 @@ import {
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu"
 import { useAuthGuard } from "../hooks/useAuthGuard"
 import EditProductModal from "@/components/editProducts"
+import StickyNote2Icon from '@mui/icons-material/StickyNote2';
 
 // ✅ SAME key as ScannerPage — must match
 const CART_KEY = "POS_CART"
@@ -39,12 +40,11 @@ function NavItem({
   return (
     <div
       className={`
-        flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer
-        transition-all duration-200
-        ${
-          active
-            ? "bg-[#FFB900] text-[#F54900]"
-            : "hover:bg-[#FFB900] hover:text-[#F54900]"
+        flex items-center gap-4 px-6 py-4 rounded-xl mx-3
+        font-bold transition-all duration-200 cursor-pointer
+        ${active
+          ? "bg-[#064e3b] text-[#b0f0d6]"
+          : "text-[#95d3ba] hover:bg-[#064e3b]/20 hover:text-white"
         }
       `}
     >
@@ -53,7 +53,7 @@ function NavItem({
       ) : (
         <FontAwesomeIcon icon={icon} />
       )}
-      {label}
+      <span className="text-sm font-bold">{label}</span>
     </div>
   )
 }
@@ -245,15 +245,24 @@ export default function InventoryPage() {
           <Link href="/inventoryPage">
             <NavItem icon={faBoxesStacked} label="Inventory" active />
           </Link>
+
           {account?.role === "admin" && (
+            <Link href="/analyticsPage">
+              <NavItem icon={<HistoryEduIcon />} label="Analytics" />
+            </Link>
+          )}
+
+          {(account?.role === "admin" || account?.role === "manager")&& (
             <>
-              <Link href="/analyticsPage">
-                <NavItem icon={<HistoryEduIcon />} label="Analytics" />
-              </Link>
               <Link href="/employee">
                 <NavItem icon={<HistoryEduIcon />} label="Employee" />
               </Link>
             </>
+          )}
+          {account?.role === "manager" && (
+            <Link href="/logsPage">
+              <NavItem icon={<StickyNote2Icon />} label="Logs" />
+            </Link>
           )}
           <Link href="/utang">
             <NavItem icon={<HistoryEduIcon />} label="Utang" />
@@ -267,7 +276,7 @@ export default function InventoryPage() {
         <div className="mt-auto p-4">
           <div className="flex items-center gap-3 border rounded-xl p-2">
             <img
-              src={account?.profileImage || "/default-avatar.png"}
+              src={account?.profileImage}
               className="w-10 h-10 rounded-full object-cover"
               loading="lazy"
             />
@@ -402,9 +411,9 @@ export default function InventoryPage() {
                           Edit
                         </button>
                       )}
-                      {account?.role === "cashier" && (
+                      {(account?.role === "cashier" || account?.role === "manager")&& (
                         <button
-                          className="mt-2 px-3 py-1 bg-primary text-white rounded disabled:opacity-40"
+                          className="ml-2 mt-2 px-3 py-1 bg-primary text-white rounded disabled:opacity-40"
                           disabled={p.quantity === 0}
                           onClick={() => handleBuy(p)}
                         >
