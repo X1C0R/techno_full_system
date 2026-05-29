@@ -286,7 +286,7 @@ export default function UtangPage() {
 
           <div className="flex justify-between mb-6 md:mb-8">
             <div>
-              <h2 className="text-2xl md:text-3xl font-bold text-[#003527]">TORY DEPT</h2>
+              <h2 className="text-2xl md:text-3xl font-bold text-[#003527]">TORY Debt</h2>
               <p className="text-gray-500 text-sm">Manage customer debts</p>
             </div>
           </div>
