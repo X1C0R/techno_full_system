@@ -16,7 +16,7 @@ import { supabase } from "@/lib/supabase";
 import MenuIcon from "@mui/icons-material/Menu"
 import CloseIcon from "@mui/icons-material/Close"
 import { useAuthGuard } from "../hooks/useAuthGuard";
-
+import ReceiptIcon from '@mui/icons-material/Receipt';
 function NavItem({
   icon,
   label,
@@ -340,6 +340,11 @@ export default function ProfilePage() {
                 <NavItem icon={<HistoryEduIcon />} label="Logs"  />
               </Link>
             )}
+
+          <Link href="/recieptPage">
+            <NavItem icon={<ReceiptIcon />} label="Reciept" />
+          </Link>
+
             <Link href="/utang">
               <NavItem icon={<HistoryEduIcon />} label="Utang" />
             </Link>

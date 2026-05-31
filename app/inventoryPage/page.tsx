@@ -18,6 +18,8 @@ import HistoryEduIcon from "@mui/icons-material/HistoryEdu"
 import { useAuthGuard } from "../hooks/useAuthGuard"
 import EditProductModal from "@/components/editProducts"
 import StickyNote2Icon from '@mui/icons-material/StickyNote2';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import PendingReturn from "@/components/ReturnProductPending"
 
 // ✅ SAME key as ScannerPage — must match
 const CART_KEY = "POS_CART"
@@ -26,6 +28,7 @@ type Account = {
   fullname: string
   role: string
   profileImage: string
+  employee_id?: string
 }
 
 function NavItem({
@@ -70,6 +73,41 @@ export default function InventoryPage() {
   const [account, setAccount] = useState<Account | null>(null)
   const [editProduct, setEditProduct] = useState<any>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [returnRequests, setReturnRequests] = useState<any[]>([])
+  const [showReturnModal, setShowReturnModal] = useState(false)
+  const [selectedReturn, setSelectedReturn] = useState<any>(null)
+
+
+  useEffect(() => {
+  const loadReturns = async () => {
+    const { data } = await supabase
+    .from("returns")
+    .select(`
+      id,
+      sale_id,
+      employee_id,
+      reason,
+      refund_total,
+      status,
+      created_at,
+      return_items (
+        product_name,
+        qty,
+        price
+      )
+    `)
+    .order("created_at", { ascending: false })
+
+    setReturnRequests(data || [])
+  }
+
+  loadReturns()
+}, [])
+
+const filteredReturns =
+  account?.role === "manager"
+    ? returnRequests
+    : returnRequests.filter(r => r.status === "pending");
 
   // ─── FETCH PRODUCTS ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -94,7 +132,7 @@ export default function InventoryPage() {
       const parsed = JSON.parse(stored)
       const { data } = await supabase
         .from("accounts")
-        .select("full_name, role, profile_image")
+        .select("full_name, role, profile_image, employee_id")
         .eq("id", parsed.id)
         .single()
       if (!data) return
@@ -102,6 +140,7 @@ export default function InventoryPage() {
         fullname: data.full_name,
         role: data.role,
         profileImage: data.profile_image,
+        employee_id: data.employee_id,
       })
     }
     fetchUser()
@@ -264,6 +303,10 @@ export default function InventoryPage() {
               <NavItem icon={<StickyNote2Icon />} label="Logs" />
             </Link>
           )}
+           <Link href="/recieptPage">
+             <NavItem icon={<ReceiptIcon/>} label="Reciept"/>
+           </Link>
+
           <Link href="/utang">
             <NavItem icon={<HistoryEduIcon />} label="Utang" />
           </Link>
@@ -293,7 +336,7 @@ export default function InventoryPage() {
 
         {/* TOP BAR */}
         <header className="flex items-center justify-between px-6 py-4 bg-surface sticky top-0 z-40">
-          <div className="w-full max-w-md relative">
+          <div className="w-full max-w-md relative flex flex-row">
             <span className="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant">
               search
             </span>
@@ -303,11 +346,22 @@ export default function InventoryPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            
           </div>
-          <div className="flex gap-4">
+          {/* <div className="flex gap-4">
             <span className="material-symbols-outlined">notifications</span>
             <span className="material-symbols-outlined">help</span>
-          </div>
+          </div> */}
+          <button
+              onClick={() => {
+                if (!returnRequests || returnRequests.length === 0) return;
+
+                setSelectedReturn(returnRequests[0]);
+                setShowReturnModal(true);
+              }}
+            >
+              Review Return
+            </button>
         </header>
 
         {/* CONTENT */}
@@ -438,6 +492,26 @@ export default function InventoryPage() {
         product={editProduct}
         onSave={handleProductSave}
       />
+      {account?.employee_id && (
+        <PendingReturn
+          open={showReturnModal}
+          request={selectedReturn}
+          managerId={account.employee_id}
+          onClose={() => setShowReturnModal(false)}
+         onUpdated={() => {
+  const fetchProducts = async () => {
+    const { data } = await supabase
+      .from("products")
+      .select("*")
+      .order("name", { ascending: true });
+
+    setProducts(data || []);
+  };
+
+  fetchProducts();
+}}
+        />
+      )}
     </div>
   )
 }

@@ -10,6 +10,8 @@ import MenuIcon from "@mui/icons-material/Menu"
 import CloseIcon from "@mui/icons-material/Close"
 import Payment from "@/components/utangPayment"
 import StickyNote2Icon from '@mui/icons-material/StickyNote2';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+
 type Account = {
   fullname: string
   role: string
@@ -235,6 +237,10 @@ export default function UtangPage() {
               <NavItem icon={<StickyNote2Icon />} label="Logs" />
             </Link>
           )}
+          
+          <Link href="/recieptPage">
+            <NavItem icon={<ReceiptIcon/>} label="Reciept" />
+          </Link>          
 
           <Link href="/utang">
             <NavItem icon={<HistoryEduIcon />} label="Utang" active />

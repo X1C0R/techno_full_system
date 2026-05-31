@@ -15,6 +15,7 @@ import CloseIcon from "@mui/icons-material/Close"
 import { useAuthGuard } from "../hooks/useAuthGuard"
 import { faAddressBook  } from "@fortawesome/free-solid-svg-icons"
 import StickyNote2Icon from '@mui/icons-material/StickyNote2'
+import ReceiptIcon from '@mui/icons-material/Receipt';
 
 type ActiveUser = {
   id: string
@@ -227,6 +228,10 @@ export default function ActiveLogsPage() {
               <NavItem icon={<StickyNote2Icon/>} label="Logs" active/>
             </Link>
 
+          <Link href="/recieptPage">
+            <NavItem icon={<ReceiptIcon/>} label="Reciept"  />
+          </Link>           
+
           <Link href="/utang">
             <NavItem icon={<HistoryEduIcon />} label="Utang" />
           </Link>
@@ -276,7 +281,7 @@ export default function ActiveLogsPage() {
               placeholder="Search user logs..."
             />
           </div>
-          <div className="flex items-center gap-3 ml-4">
+          {/* <div className="flex items-center gap-3 ml-4">
             <button className="relative p-2 text-gray-500 hover:bg-[#eef4ff] rounded-full transition-colors">
               <span className="material-symbols-outlined">notifications</span>
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
@@ -284,7 +289,7 @@ export default function ActiveLogsPage() {
             <button className="p-2 text-gray-500 hover:bg-[#eef4ff] rounded-full transition-colors">
               <span className="material-symbols-outlined">settings</span>
             </button>
-          </div>
+          </div> */}
         </header>
 
         {/* CONTENT */}

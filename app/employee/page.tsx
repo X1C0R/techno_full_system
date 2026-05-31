@@ -17,7 +17,7 @@ import EditUserModal from "@/components/editUserModal"
 import { useAuthGuard } from "../hooks/useAuthGuard"
 import StickyNote2Icon from '@mui/icons-material/StickyNote2';
 import WorkHoursModal from "@/components/workHourModal"
-
+import ReceiptIcon from '@mui/icons-material/Receipt';
 
 type Account = {
   id: string
@@ -308,6 +308,10 @@ export default function EmployeesPage() {
               <NavItem icon={<StickyNote2Icon />} label="Logs" />
             </Link>
           )}
+
+          <Link href="/recieptPage">
+            <NavItem icon={<ReceiptIcon/>} label="Reciept" />
+          </Link>          
 
           <Link href="/utang">
             <NavItem icon={<HistoryEduIcon />} label="Utang" />

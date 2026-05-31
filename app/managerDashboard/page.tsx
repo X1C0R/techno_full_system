@@ -18,6 +18,8 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faCashRegister, faBoxesStacked, faCircleUser, faAddressBook  } from "@fortawesome/free-solid-svg-icons"
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu"
 import StickyNote2Icon from '@mui/icons-material/StickyNote2';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import SpaceDashboardIcon from '@mui/icons-material/SpaceDashboard';
 
 type Account = {
   fullname: string
@@ -125,30 +127,49 @@ export default function ManagerDashboard() {
   const fetchSales = async () => {
     const { data, error } = await supabase
       .from("sales")
-      .select("sale_date, sale_month, total, payment_method")
+      .select("sale_date, sale_month, total, payment_method, created_at")
 
     if (error || !data) return
 
+    // ✅ FILTER: CASH ONLY
+    const cashSales = data.filter(
+      (s) => (s.payment_method || "").toLowerCase() === "cash"
+    )
+
+    // =========================
+    // ✅ 1. TOTAL SALES (TODAY ONLY)
+    // =========================
+    const today = new Date().toDateString()
+
+    const todaySales = cashSales.filter(
+      (s) => new Date(s.created_at).toDateString() === today
+    )
+
+    const todayTotal = todaySales.reduce(
+      (sum, s) => sum + Number(s.total || 0),
+      0
+    )
+
+    setTotalSales(todayTotal)
+
+    // =========================
+    // ✅ 2. BAR GRAPH (ALL SALES)
+    // =========================
     const grouped: Record<string, number> = {}
 
-    let total = 0
+    cashSales.forEach((sale) => {
+      const key =
+        viewMode === "daily"
+          ? sale.sale_date
+          : sale.sale_month
 
-    data
-      .filter((s) => (s.payment_method || "").toLowerCase() === "cash")
-      .forEach((sale) => {
-        const key =
-          viewMode === "daily"
-            ? sale.sale_date
-            : sale.sale_month
+      if (!key) return
 
-        if (!key) return
+      const value = Number(sale.total || 0)
 
-        const value = Number(sale.total || 0)
+      grouped[key] = (grouped[key] || 0) + value
+    })
 
-        grouped[key] = (grouped[key] || 0) + value
-      })
-
-    // ⚡ build chart data (ALL DAYS)
     const chartData = Object.entries(grouped)
       .map(([name, sales]) => ({
         name,
@@ -157,11 +178,6 @@ export default function ManagerDashboard() {
       .sort((a, b) => a.name.localeCompare(b.name))
 
     setBarData(chartData)
-
-    // ⚡ FIX: total should come from ALL filtered sales (not grouped loop confusion)
-    total = Object.values(grouped).reduce((a, b) => a + b, 0)
-
-    setTotalSales(total)
   }
 
   fetchSales()
@@ -293,7 +309,7 @@ export default function ManagerDashboard() {
           )}
 
             <Link href="/managerDashboard">
-              <NavItem icon={faCashRegister} label="Dashboard" active />
+              <NavItem icon={<SpaceDashboardIcon/>} label="Dashboard" active />
             </Link>
 
              {(account?.role === "cashier" || account?.role === "manager") && (
@@ -319,6 +335,10 @@ export default function ManagerDashboard() {
           
           <Link href="/logsPage">
             <NavItem icon={<StickyNote2Icon/>} label="Logs"/>
+          </Link>
+
+          <Link href="/recieptPage">
+            <NavItem icon={<ReceiptIcon/>} label="Reciept"/>
           </Link>
 
           <Link href="/utang">
@@ -372,12 +392,12 @@ export default function ManagerDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4 ml-auto">
-            <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#eef4ff] transition-colors">
+            {/* <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#eef4ff] transition-colors">
               <span className="material-symbols-outlined text-gray-500">notifications</span>
             </button>
             <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-[#eef4ff] transition-colors">
               <span className="material-symbols-outlined text-gray-500">settings</span>
-            </button>
+            </button> */}
             <div className="hidden sm:block text-right">
               <p className="text-sm font-bold text-[#121c28]">Dashboard Overview</p>
               <p className="text-xs text-gray-400">

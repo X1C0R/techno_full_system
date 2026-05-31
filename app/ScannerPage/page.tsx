@@ -13,7 +13,7 @@ import MenuIcon from "@mui/icons-material/Menu"
 import CloseIcon from "@mui/icons-material/Close"
 import { useAuthGuard } from "../hooks/useAuthGuard"
 import StickyNote2Icon from '@mui/icons-material/StickyNote2';
-
+import ReceiptIcon from '@mui/icons-material/Receipt';
 const CART_KEY = "POS_CART"
 
 type Product = {
@@ -308,14 +308,49 @@ export default function Dashboard() {
       )
 
       if (selected === "utang") {
-        const { error: utangError } = await supabase.from("utang_records").insert({
-          sale_id: sale.id,
-          employee_id: user.employee_id,
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          total,
-        })
-        if (utangError) throw utangError
+        // Find the existing row Android created (has signature + ID)
+        // and UPDATE it instead of inserting a new one
+        const { data: existingUtang, error: findError } = await supabase
+          .from("utang_records")
+          .select("id")
+          .eq("customer_name", customerName)
+          .not("signature_url", "is", null)
+          .not("id_image_url", "is", null)
+          .limit(1)
+          .maybeSingle()
+
+        if (findError) throw findError
+
+        if (existingUtang) {
+          // Update the existing Android row with sale details
+          const { error: utangError } = await supabase
+            .from("utang_records")
+            .update({
+              sale_id: sale.id,
+              employee_id: user.employee_id,
+              customer_phone: customerPhone,
+              total,
+              status: "unpaid",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingUtang.id)
+
+          if (utangError) throw utangError
+        } else {
+          // Fallback: no Android record found, insert normally
+          const { error: utangError } = await supabase
+            .from("utang_records")
+            .insert({
+              sale_id: sale.id,
+              employee_id: user.employee_id,
+              customer_name: customerName,
+              customer_phone: customerPhone,
+              total,
+              status: "unpaid",
+            })
+
+          if (utangError) throw utangError
+        }
       }
 
       setCart([])
@@ -378,14 +413,13 @@ export default function Dashboard() {
             </Link>
 
             {account?.role === "admin" && (
-              <Link href="/analyticsPage">
-                <NavItem icon={<HistoryEduIcon />} label="Analytics" />
-              </Link>
+                <Link href="/analyticsPage">
+                  <NavItem icon={<HistoryEduIcon />} label="Analytics" />
+                </Link>
             )}
 
             {(account?.role === "admin" || account?.role === "manager") && (
               <>
-                
                 <Link href="/employee">
                   <NavItem icon={faAddressBook} label="Employee" />
                 </Link>
@@ -396,6 +430,11 @@ export default function Dashboard() {
                 <NavItem icon={<StickyNote2Icon />} label="Logs" />
               </Link>
             )}
+
+              <Link href="/recieptPage">
+                <NavItem icon={<ReceiptIcon/>} label="Reciept" />
+              </Link>
+
             <Link href="/utang">
               <NavItem icon={<HistoryEduIcon />} label="Utang" />
             </Link>
@@ -531,7 +570,14 @@ export default function Dashboard() {
       {/* UTANG MODAL */}
       <UtangModal
         isOpen={showUtangModal}
-        onClose={() => setShowUtangModal(false)}
+        onClose={() => {
+          setShowUtangModal(false)
+          setSelected("cash")       // reset payment back to cash
+          setCart([])               // clear cart state
+          setCustomerName("")       // clear customer name
+          setCustomerPhone("")      // clear customer phone
+          localStorage.removeItem(CART_KEY)  // clear persisted cart
+        }}
         onComplete={handleCompleteSale}
         cart={cart}
         customerName={customerName}
